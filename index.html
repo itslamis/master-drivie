@@ -1,0 +1,1881 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Masar Driving Trainer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Readex+Pro:wght@400;600;700&display=swap">
+<style>
+/* Layout: sticky top bar + single centred column; the simulator takes over the full screen with a glass HUD. */
+:root{
+  --bg:#eef1f3; --surface:#f8fafb; --raised:#ffffff; --ink:#131c24; --muted:#56636e; --line:#d4dbe1;
+  --asphalt:#1d252d; --asphalt-2:#2a343e; --asphalt-ink:#eaf0f4;
+  --signal:#f2b01e; --signal-ink:#1d1500; --go:#16845a; --stop:#c7382c; --info:#2a62c4;
+  --hud-bg:rgba(12,17,22,.74); --hud-ink:#f2f6f8; --hud-muted:#a9b6c1; --hud-line:rgba(255,255,255,.14);
+  --font-display:'Readex Pro','IBM Plex Sans Arabic',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans Arabic','Readex Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1419; --surface:#141c23; --raised:#19232c; --ink:#e7eef3; --muted:#97a6b2; --line:#283541;
+    --asphalt:#0a0f13; --asphalt-2:#1b252e; --asphalt-ink:#e7eef3;
+    --signal:#ffc23a; --signal-ink:#1d1500; --go:#3cc489; --stop:#f0614f; --info:#76a3ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --surface:#141c23; --raised:#19232c; --ink:#e7eef3; --muted:#97a6b2; --line:#283541;
+  --asphalt:#0a0f13; --asphalt-2:#1b252e; --asphalt-ink:#e7eef3;
+  --signal:#ffc23a; --signal-ink:#1d1500; --go:#3cc489; --stop:#f0614f; --info:#76a3ff; color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--asphalt)}
+h1,h2,h3{font-family:var(--font-display);line-height:1.2;text-wrap:balance;margin:0}
+p{margin:0}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--info);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+bdi{unicode-bidi:isolate}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--asphalt);color:var(--asphalt-ink);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:3px solid var(--signal)}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:700;font-size:1.15rem;margin-inline-end:auto}
+.brand-mark{width:34px;height:34px;border-radius:7px;background:var(--signal);color:var(--signal-ink);display:grid;place-items:center;font-size:.8rem;font-weight:700;position:relative;overflow:hidden}
+.brand-mark::after{content:"";position:absolute;inset:0;margin:auto;width:3px;height:100%;background:repeating-linear-gradient(to bottom,var(--signal-ink) 0 5px,transparent 5px 10px);opacity:.85}
+.brand small{display:block;font-family:var(--font-body);font-weight:500;font-size:.72rem;color:#b8c4cd;letter-spacing:.02em}
+.seg{display:inline-flex;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;color:inherit;padding:5px 12px;border-radius:999px;cursor:pointer;font-weight:600;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--signal);color:var(--signal-ink)}
+.userchip{display:flex;align-items:center;gap:8px;font-size:.88rem}
+.userchip .tag{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:2px 10px;font-size:.75rem;color:#c9d3da}
+.linkbtn{background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:4px}
+
+/* ---------- general ---------- */
+main.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 40px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;border:1px solid var(--line);background:var(--raised);padding:10px 18px;font-weight:600;cursor:pointer;min-height:44px;text-decoration:none}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--signal);color:var(--signal-ink);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.dark{background:var(--asphalt);color:var(--asphalt-ink);border-color:transparent}
+.btn.ghost{background:transparent}
+.btn.danger{background:var(--stop);color:#fff;border-color:transparent}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+[dir="rtl"] .eyebrow{letter-spacing:0;text-transform:none;font-size:.82rem}
+.lane-rule{height:4px;background:repeating-linear-gradient(90deg,var(--signal) 0 22px,transparent 22px 40px);border-radius:2px;margin-block:22px}
+.disclaimer{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 32px}
+.disclaimer .box{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;background:var(--surface);font-size:.92rem}
+.warn-tri{width:30px;height:27px;background:var(--signal);clip-path:polygon(50% 0,100% 100%,0 100%);display:grid;place-items:end center;font-weight:700;color:var(--signal-ink);font-size:.8rem;padding-bottom:1px}
+.disclaimer p{min-width:0}
+.disclaimer p+p{margin-top:4px}
+
+/* ---------- login ---------- */
+.login{display:grid;grid-template-columns:1.05fr 1fr;gap:0;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--raised)}
+.login-road{background:var(--asphalt);color:var(--asphalt-ink);padding:36px 32px;position:relative;overflow:hidden;min-height:420px;display:flex;flex-direction:column;justify-content:flex-end;gap:14px}
+.login-road::before{content:"";position:absolute;inset:-10% 0 0;margin-inline:auto;width:8px;background:repeating-linear-gradient(to bottom,#f5f7f8 0 46px,transparent 46px 92px);opacity:.55;transform:perspective(400px) rotateX(55deg);transform-origin:bottom}
+.login-road::after{content:"";position:absolute;inset:auto 0 0;height:55%;background:linear-gradient(to top,var(--asphalt) 30%,transparent)}
+.login-road > *{position:relative;z-index:1}
+.login-road h1{font-size:clamp(2.2rem,5vw,3.2rem)}
+.login-road .alt{font-family:var(--font-display);font-size:1.4rem;color:var(--signal)}
+.login-road ul{list-style:none;padding:0;margin:6px 0 0;display:grid;gap:6px;color:#c8d2d9}
+.login-road li{display:flex;gap:10px}
+.login-road li::before{content:"";flex:none;width:10px;height:10px;margin-top:8px;border-radius:2px;background:var(--signal)}
+.login-form{padding:36px 32px;display:flex;flex-direction:column;gap:16px}
+.login-form h2{font-size:1.6rem}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-weight:600;font-size:.92rem}
+.field input{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:11px 12px;min-height:46px}
+.field input:focus{border-color:var(--info)}
+.field input[aria-invalid="true"]{border-color:var(--stop)}
+.err{color:var(--stop);font-size:.86rem;min-height:1.2em}
+.or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:.85rem}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+.note{font-size:.84rem;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:8px;padding:10px 12px}
+.note b{color:var(--ink)}
+
+/* ---------- dashboard ---------- */
+.dash-head{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:end}
+.dash-head h1{font-size:clamp(1.7rem,3.6vw,2.4rem)}
+.dash-head p{color:var(--muted);margin-top:6px;max-width:60ch}
+.start-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--signal);color:var(--signal-ink);border:0;border-radius:12px;padding:16px 30px;cursor:pointer;box-shadow:0 0 0 4px var(--asphalt),0 10px 24px rgba(0,0,0,.18);min-width:230px}
+.start-btn .main{font-family:var(--font-display);font-weight:700;font-size:1.35rem}
+.start-btn .sub{font-size:.85rem;font-weight:600;opacity:.8}
+.start-btn .next{font-size:.8rem;font-weight:500;opacity:.75}
+.start-btn:hover{filter:brightness(1.05)}
+.progress{margin-top:26px;background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;display:grid;gap:12px}
+.progress-top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.progress-top h2{font-size:1.05rem}
+.road-track{position:relative;height:44px;background:var(--asphalt);border-radius:8px;overflow:hidden}
+.road-track .dash{position:absolute;inset-inline:12px;top:50%;height:3px;transform:translateY(-50%);background:repeating-linear-gradient(90deg,rgba(255,255,255,.5) 0 16px,transparent 16px 30px)}
+[dir="rtl"] .road-track .dash{background:repeating-linear-gradient(270deg,rgba(255,255,255,.5) 0 16px,transparent 16px 30px)}
+.road-track .fill{position:absolute;inset-block:0;inset-inline-start:0;background:linear-gradient(90deg,rgba(242,176,30,.35),rgba(242,176,30,.55));transition:width .6s}
+.road-track .stops{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr)}
+.road-track .stop{display:flex;align-items:center;justify-content:flex-end;padding-inline:10px}
+.marker{width:28px;height:28px;border-radius:5px;display:grid;place-items:center;font-weight:700;font-size:.85rem;background:#56626d;color:#fff;border:2px solid rgba(255,255,255,.7)}
+.marker.passed{background:var(--signal);color:var(--signal-ink);border-color:#fff}
+.levels{margin-top:30px}
+.levels-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.levels-head h2{font-size:1.3rem}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.card{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.locked{background:var(--surface)}
+.card.locked .card-body{opacity:.6}
+.card-top{display:flex;align-items:center;gap:12px}
+.plate{flex:none;width:46px;height:52px;border-radius:6px;background:var(--signal);color:var(--signal-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;line-height:1;border:2px solid var(--asphalt)}
+.plate b{font-family:var(--font-mono);font-size:1.4rem}
+.plate span{font-size:.6rem;margin-top:3px}
+.card.locked .plate{background:var(--line);color:var(--muted);border-color:var(--line)}
+.card h3{font-size:1.05rem}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;border:1px solid currentColor;width:fit-content}
+.chip.passed{color:var(--go)} .chip.available{color:var(--info)} .chip.locked{color:var(--muted)}
+.card-body{display:grid;gap:10px;flex:1}
+.card-body p{color:var(--muted);font-size:.92rem}
+.stats{display:flex;gap:18px;font-size:.84rem;color:var(--muted);flex-wrap:wrap}
+.stats b{color:var(--ink);font-family:var(--font-mono)}
+.card .btn{width:100%}
+.settings{margin-top:30px;border:1px solid var(--line);border-radius:var(--r);background:var(--raised)}
+.settings summary{padding:14px 18px;cursor:pointer;font-family:var(--font-display);font-weight:600}
+.settings-body{padding:0 18px 18px;display:grid;gap:16px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.switch{position:relative;width:46px;height:26px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;cursor:pointer;margin:0}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:.2s;pointer-events:none}
+.switch span::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.switch input:checked + span{background:var(--go)}
+.switch input:checked + span::after{inset-inline-start:23px}
+.switch input:focus-visible + span{outline:3px solid var(--info);outline-offset:2px}
+.settings .sub{font-size:.84rem;color:var(--muted)}
+.row-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.confirm{border:1px solid var(--stop);border-radius:8px;padding:12px;display:grid;gap:10px}
+
+/* ---------- briefing ---------- */
+.brief{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.brief h1{font-size:clamp(1.6rem,3.4vw,2.2rem)}
+.panel{background:var(--raised);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;min-width:0}
+.panel h2{font-size:1.05rem;margin-bottom:10px}
+.objlist{margin:0;padding-inline-start:1.3em;display:grid;gap:6px}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:start;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.78rem;color:var(--muted);font-weight:600}
+kbd{font-family:var(--font-mono);font-size:.8rem;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface);white-space:nowrap}
+.vrstate{display:flex;gap:12px;align-items:flex-start}
+.vrdot{flex:none;width:12px;height:12px;border-radius:50%;margin-top:7px;background:var(--muted)}
+.vrdot.yes{background:var(--go)} .vrdot.no{background:var(--signal)}
+.brief-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}
+.alert{border-radius:8px;padding:12px 14px;border:1px solid var(--stop);color:var(--stop);background:var(--surface)}
+
+/* ---------- simulator ---------- */
+.sim{position:fixed;inset:0;z-index:50;background:#0b1015;color:var(--hud-ink);overflow:hidden}
+#scene-host{position:absolute;inset:0}
+#scene-host a-scene{position:absolute;inset:0;width:100%;height:100%}
+.hud{position:absolute;inset:0;pointer-events:none;
+  padding-top:max(10px,env(safe-area-inset-top,0px));padding-bottom:max(10px,env(safe-area-inset-bottom,0px));
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px))}
+.hud > *{pointer-events:auto}
+.glass{background:var(--hud-bg);border:1px solid var(--hud-line);border-radius:10px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.hud-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.hud-title{padding:7px 12px;font-family:var(--font-display);font-weight:600;font-size:.92rem;display:flex;gap:12px;align-items:center;min-width:0}
+.hud-title .mono{color:var(--hud-muted);font-size:.82rem}
+.hud-actions{display:flex;gap:6px;margin-inline-start:auto;flex-wrap:wrap}
+.hbtn{border:1px solid var(--hud-line);background:var(--hud-bg);color:var(--hud-ink);border-radius:8px;padding:6px 12px;min-height:38px;cursor:pointer;font-weight:600;font-size:.85rem;backdrop-filter:blur(6px)}
+.hbtn:hover{border-color:rgba(255,255,255,.4)}
+.hbtn.vr{background:var(--info);border-color:transparent}
+.hbtn.exit{color:#ffb3aa}
+.hbtn[aria-pressed="false"]{color:var(--hud-muted)}
+.guide{position:absolute;top:calc(max(10px,env(safe-area-inset-top,0px)) + 56px);inset-inline:0;margin-inline:auto;width:min(620px,calc(100% - 24px));padding:10px 14px;display:grid;gap:4px;border-inline-start:4px solid var(--signal)}
+.guide-k{font-size:.74rem;color:var(--signal);font-weight:700;letter-spacing:.05em}
+.guide p{font-size:.95rem;line-height:1.5}
+.hud-side{position:absolute;inset-inline-start:max(12px,env(safe-area-inset-left,0px));top:calc(max(10px,env(safe-area-inset-top,0px)) + 56px);width:210px;display:grid;gap:8px}
+[dir="rtl"] .hud-side{inset-inline-start:max(12px,env(safe-area-inset-right,0px))}
+.gauge{padding:10px 12px;display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:end}
+.gauge .speed{font-family:var(--font-mono);font-size:2.4rem;font-weight:600;line-height:1}
+.gauge .unit{font-size:.75rem;color:var(--hud-muted)}
+.gearbox{display:flex;gap:3px;font-family:var(--font-mono);font-weight:600;font-size:.85rem}
+.gearbox span{width:20px;text-align:center;border-radius:4px;color:var(--hud-muted)}
+.gearbox span.on{background:var(--signal);color:#1d1500}
+.limit{width:38px;height:38px;border-radius:50%;background:#fff;border:4px solid #d0342a;color:#111;display:grid;place-items:center;font-family:var(--font-mono);font-weight:700;font-size:.85rem}
+.limit.over{animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{background:#ffd8d4}}
+.scorebox{padding:8px 12px;display:flex;justify-content:space-between;align-items:baseline}
+.scorebox b{font-family:var(--font-mono);font-size:1.4rem}
+.scorebox span{color:var(--hud-muted);font-size:.8rem}
+.objs{list-style:none;margin:0;padding:8px 10px;display:grid;gap:4px;font-size:.8rem;max-height:40vh;overflow:auto}
+.objs li{display:grid;grid-template-columns:16px 1fr;gap:6px;color:var(--hud-muted)}
+.objs li::before{content:"";width:12px;height:12px;border-radius:3px;border:2px solid var(--hud-muted);margin-top:3px}
+.objs li.cur{color:var(--hud-ink)}
+.objs li.cur::before{border-color:var(--signal)}
+.objs li.done{color:#9fe0bf}
+.objs li.done::before{background:var(--go);border-color:var(--go)}
+.toasts{position:absolute;inset-inline-end:max(12px,env(safe-area-inset-right,0px));top:calc(max(10px,env(safe-area-inset-top,0px)) + 56px);width:min(330px,calc(100% - 24px));display:grid;gap:8px}
+[dir="rtl"] .toasts{inset-inline-end:max(12px,env(safe-area-inset-left,0px))}
+.toast{padding:10px 12px;border-inline-start:4px solid var(--info);animation:tin .25s ease-out;display:grid;gap:3px;font-size:.88rem}
+.toast.mistake{border-inline-start-color:#f0614f}
+.toast.good{border-inline-start-color:#3cc489}
+.toast b{font-size:.92rem}
+.toast .pts{font-family:var(--font-mono);color:#ff9d92;font-size:.8rem}
+.toast .fix{color:#d7e1e8}
+@keyframes tin{from{opacity:0;transform:translateY(-6px)}}
+.callout{position:absolute;transform:translate(-50%,-100%);padding:5px 10px;border-radius:8px;background:var(--signal);color:#1d1500;font-weight:700;font-size:.85rem;white-space:nowrap;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.callout::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:var(--signal)}
+.callout.edge::after{display:none}
+.pad{position:absolute;inset-inline:0;bottom:max(10px,env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;align-items:flex-end;gap:10px;pointer-events:none}
+.pad > *{pointer-events:auto}
+.pbtn{border:1px solid var(--hud-line);background:var(--hud-bg);color:var(--hud-ink);border-radius:14px;font-weight:700;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;backdrop-filter:blur(6px)}
+.pbtn.held{background:rgba(242,176,30,.85);color:#1d1500}
+.steer{display:flex;gap:10px}
+.steer .pbtn{width:76px;height:76px;border-radius:50%;font-size:1.5rem}
+.pedals{display:flex;gap:10px;align-items:flex-end}
+.pedals .brake{width:96px;height:64px}
+.pedals .gas{width:70px;height:96px}
+.gears{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:6px}
+.gears button{border:1px solid var(--hud-line);background:var(--hud-bg);color:var(--hud-ink);border-radius:8px;min-height:38px;font-family:var(--font-mono);font-weight:600;cursor:pointer}
+.gears button[aria-pressed="true"]{background:var(--signal);color:#1d1500}
+.rightpad{display:flex;flex-direction:column;align-items:flex-end}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(6,9,12,.66);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px;z-index:5}
+.overlay .card-o{width:min(440px,100%);padding:22px;display:grid;gap:12px;background:#141c23;border:1px solid var(--hud-line);border-radius:14px;color:var(--hud-ink)}
+.overlay h2{font-size:1.4rem}
+.overlay .btn{width:100%;background:#1f2a33;border-color:var(--hud-line);color:var(--hud-ink)}
+.overlay .btn.primary{background:var(--signal);color:#1d1500}
+.overlay .small{font-size:.82rem;color:var(--hud-muted)}
+.spinner{width:42px;height:42px;border-radius:50%;border:4px solid rgba(255,255,255,.2);border-top-color:var(--signal);animation:spin 1s linear infinite;margin-inline:auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- results ---------- */
+.res-head{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:center;background:var(--raised);border:1px solid var(--line);border-radius:14px;padding:24px;border-top:6px solid var(--go)}
+.res-head.fail{border-top-color:var(--signal)}
+.score-sign{width:132px;height:132px;border-radius:50%;background:#fff;border:12px solid #d0342a;display:grid;place-items:center;color:#111;text-align:center;line-height:1}
+.score-sign b{font-family:var(--font-mono);font-size:2.6rem;display:block}
+.score-sign span{font-size:.7rem;font-weight:600;color:#444}
+.res-head h1{font-size:clamp(1.5rem,3.4vw,2.1rem)}
+.res-head p{color:var(--muted);margin-top:6px}
+.res-head .unlock{color:var(--go);font-weight:600}
+.res-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:20px}
+.res-grid ul{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:.92rem}
+.res-grid li{display:grid;grid-template-columns:18px 1fr auto;gap:8px;align-items:start}
+.ic{width:14px;height:14px;border-radius:3px;margin-top:5px}
+.ic.ok{background:var(--go)} .ic.no{border:2px solid var(--muted)} .ic.bad{background:var(--stop);border-radius:50%}
+.res-grid .tips li{grid-template-columns:18px 1fr}
+.ic.tip{background:var(--signal);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.res-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.muted{color:var(--muted)}
+
+@media (max-width:860px){
+  .login{grid-template-columns:1fr}
+  .login-road{min-height:240px;padding:26px 22px}
+  .login-form{padding:26px 22px}
+  .dash-head{grid-template-columns:1fr}
+  .start-btn{width:100%}
+  .cards,.res-grid{grid-template-columns:1fr}
+  .brief{grid-template-columns:1fr}
+  .res-head{grid-template-columns:1fr;justify-items:start}
+}
+@media (max-width:1100px){
+  .guide{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 120px);width:min(520px,calc(100% - 24px))}
+}
+@media (max-width:700px){
+  .hud-side{width:150px;top:calc(max(10px,env(safe-area-inset-top,0px)) + 100px)}
+  .objs{display:none}
+  .gauge .speed{font-size:1.8rem}
+  .guide{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 150px)}
+  .toasts{top:auto;bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 150px)}
+  .hud.has-guide .toasts{bottom:calc(max(10px,env(safe-area-inset-bottom,0px)) + 250px)}
+  .hbtn{padding:5px 9px;font-size:.78rem}
+  .hud-title{font-size:.8rem}
+  .steer .pbtn{width:62px;height:62px}
+  .pedals .brake{width:76px;height:54px}
+  .pedals .gas{width:58px;height:82px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* Added: always-visible VR button replaces the auto-detected one so only one shows */
+#hud-vr{display:none!important}
+</style>
+</head>
+<body>
+
+
+<header class="topbar" id="topbar">
+  <div class="brand"><div class="brand-mark" aria-hidden="true"></div><div><span data-i18n="appName"></span><small data-i18n="tagline"></small></div></div>
+  <div class="seg" role="group" data-i18n-aria="langGroup" id="lang-seg">
+    <button type="button" data-lang="ar" lang="ar">العربية</button>
+    <button type="button" data-lang="en" lang="en">English</button>
+  </div>
+  <div class="userchip" id="userchip" hidden>
+    <span id="user-name"></span><span class="tag" id="user-tag"></span>
+    <button type="button" class="linkbtn" id="btn-signout" data-i18n="signout"></button>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- LOGIN -->
+  <section class="screen" id="screen-login">
+    <div class="login">
+      <div class="login-road">
+        <div class="alt" id="login-alt"></div>
+        <h1 data-i18n="login.title"></h1>
+        <ul><li data-i18n="login.side1"></li><li data-i18n="login.side2"></li></ul>
+      </div>
+      <form class="login-form" id="login-form" novalidate>
+        <h2 data-i18n="login.h"></h2>
+        <p class="muted" data-i18n="login.sub"></p>
+        <div class="field">
+          <label for="f-email" data-i18n="email"></label>
+          <input id="f-email" type="email" autocomplete="email" dir="ltr" placeholder="name@example.com" aria-describedby="e-email">
+          <div class="err" id="e-email" aria-live="polite"></div>
+        </div>
+        <div class="field">
+          <label for="f-pass" data-i18n="password"></label>
+          <input id="f-pass" type="password" autocomplete="current-password" dir="ltr" aria-describedby="e-pass">
+          <div class="err" id="e-pass" aria-live="polite"></div>
+        </div>
+        <button class="btn primary" type="submit" data-i18n="signin"></button>
+        <div class="or" data-i18n="or"></div>
+        <button class="btn" type="button" id="btn-guest" data-i18n="guest"></button>
+        <p class="note" id="demo-note"></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="screen" id="screen-dashboard" hidden>
+    <div class="dash-head">
+      <div>
+        <div class="eyebrow" data-i18n="dash.eyebrow"></div>
+        <h1 id="dash-hello"></h1>
+        <p data-i18n="dash.sub"></p>
+      </div>
+      <button type="button" class="start-btn" id="btn-start">
+        <span class="main" data-i18n="start"></span>
+        <span class="sub" id="start-alt"></span>
+        <span class="next" id="start-next"></span>
+      </button>
+    </div>
+    <div class="progress" aria-labelledby="prog-h">
+      <div class="progress-top"><h2 id="prog-h" data-i18n="progress"></h2><span class="muted" id="prog-text"></span></div>
+      <div class="road-track" aria-hidden="true"><div class="fill" id="prog-fill"></div><div class="dash"></div><div class="stops" id="prog-stops"></div></div>
+    </div>
+    <div class="levels">
+      <div class="levels-head"><h2 data-i18n="levels"></h2><span class="muted" data-i18n="levelsHint"></span></div>
+      <div class="cards" id="cards"></div>
+    </div>
+    <details class="settings" id="settings">
+      <summary data-i18n="settings"></summary>
+      <div class="settings-body">
+        <div class="toggle"><div><div id="lbl-voice" data-i18n="voice"></div><div class="sub" data-i18n="voiceSub"></div></div><label class="switch"><input type="checkbox" id="set-voice" aria-labelledby="lbl-voice"><span></span></label></div>
+        <div class="toggle"><div><div id="lbl-pad" data-i18n="onscreen"></div><div class="sub" data-i18n="onscreenSub"></div></div><label class="switch"><input type="checkbox" id="set-pad" aria-labelledby="lbl-pad"><span></span></label></div>
+        <div class="field">
+          <label for="set-model" data-i18n="model"></label>
+          <input id="set-model" type="file" accept=".glb,.gltf,model/gltf-binary,model/gltf+json">
+          <div class="sub" data-i18n="modelNote"></div>
+          <div class="row-actions"><span class="sub" id="model-status"></span><button type="button" class="linkbtn" id="btn-model-clear" hidden data-i18n="modelClear"></button></div>
+        </div>
+        <p class="sub" id="storage-note"></p>
+        <div class="row-actions"><button type="button" class="btn ghost" id="btn-reset" data-i18n="reset"></button><span class="sub" id="reset-msg" aria-live="polite"></span></div>
+        <div class="confirm" id="reset-confirm" hidden>
+          <p data-i18n="resetQ"></p>
+          <div class="row-actions"><button type="button" class="btn danger" id="btn-reset-yes" data-i18n="resetYes"></button><button type="button" class="btn" id="btn-reset-no" data-i18n="cancel"></button></div>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <!-- BRIEFING -->
+  <section class="screen" id="screen-brief" hidden>
+    <div class="eyebrow" data-i18n="brief.title"></div>
+    <h1 id="brief-title"></h1>
+    <p class="muted" id="brief-desc" style="margin-top:6px;max-width:65ch"></p>
+    <div class="lane-rule" aria-hidden="true"></div>
+    <div class="brief">
+      <div class="panel"><h2 data-i18n="brief.objectives"></h2><ol class="objlist" id="brief-objs"></ol></div>
+      <div class="panel">
+        <h2 data-i18n="vr.title"></h2>
+        <div class="vrstate"><span class="vrdot" id="vr-dot"></span><p id="vr-text"></p></div>
+        <p class="muted" style="margin-top:10px;font-size:.9rem" data-i18n="brief.tip"></p>
+      </div>
+      <div class="panel" style="grid-column:1/-1">
+        <h2 data-i18n="brief.controls"></h2>
+        <div class="table-wrap"><table id="ctrl-table"></table></div>
+      </div>
+    </div>
+    <div class="alert" id="engine-fail" hidden style="margin-top:16px" data-i18n="engineFail"></div>
+    <div class="brief-actions">
+      <button type="button" class="btn primary" id="btn-go" data-i18n="brief.go"></button>
+      <button type="button" class="btn" id="btn-brief-back" data-i18n="back"></button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="screen-results" hidden>
+    <div class="res-head" id="res-head">
+      <div class="score-sign"><div><b id="res-score">0</b><span data-i18n="res.score"></span></div></div>
+      <div>
+        <div class="eyebrow" id="res-lesson"></div>
+        <h1 id="res-title"></h1>
+        <p id="res-sub"></p>
+        <p class="unlock" id="res-unlock" hidden></p>
+        <p class="muted mono" id="res-time" style="margin-top:6px;font-size:.88rem"></p>
+      </div>
+    </div>
+    <div class="res-grid">
+      <div class="panel"><h2 data-i18n="res.objectives"></h2><ul id="res-objs"></ul></div>
+      <div class="panel"><h2 data-i18n="res.mistakes"></h2><ul id="res-mistakes"></ul></div>
+      <div class="panel"><h2 data-i18n="res.tips"></h2><ul class="tips" id="res-tips"></ul></div>
+    </div>
+    <div class="res-actions">
+      <button type="button" class="btn primary" id="btn-next" hidden data-i18n="res.next"></button>
+      <button type="button" class="btn dark" id="btn-retry" data-i18n="res.retry"></button>
+      <button type="button" class="btn" id="btn-res-dash" data-i18n="res.dash"></button>
+    </div>
+  </section>
+</main>
+
+<footer class="disclaimer" id="disclaimer">
+  <div class="box">
+    <div class="warn-tri" aria-hidden="true">!</div>
+    <div>
+      <p lang="en" dir="ltr">Masar supports learning. It does not replace practical lessons with a qualified driving instructor.</p>
+      <p lang="ar" dir="rtl">مسار أداة مساعدة على التعلّم، ولا يغني عن الدروس العملية مع مدرّب قيادة مؤهّل.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- SIMULATOR -->
+<section class="screen sim" id="screen-sim" hidden>
+  <div id="scene-host"></div>
+  <div class="hud" id="hud">
+    <div class="hud-top">
+      <div class="glass hud-title"><span id="hud-title"></span><span class="mono" id="hud-time">0:00</span></div>
+      <div class="hud-actions">
+        <button type="button" class="hbtn" id="hud-lang"></button>
+        <button type="button" class="hbtn" id="hud-voice" aria-pressed="true" data-i18n="hud.voice"></button>
+        <button type="button" class="hbtn" id="hud-pad" aria-pressed="true" data-i18n="hud.pad"></button>
+        <button type="button" class="hbtn vr" id="hud-vr" hidden data-i18n="hud.vr"></button>
+        <button type="button" class="hbtn vr" id="vr-activate"></button>
+        <button type="button" class="hbtn" id="hud-pause" data-i18n="hud.pause"></button>
+        <button type="button" class="hbtn exit" id="hud-exit" data-i18n="hud.exit"></button>
+      </div>
+    </div>
+    <div class="glass guide" id="guide" hidden aria-live="polite"><div class="guide-k" id="guide-k"></div><p id="guide-text"></p></div>
+    <aside class="hud-side">
+      <div class="glass gauge">
+        <div><div class="speed" id="hud-speed">0</div><div class="unit" data-i18n="hud.kmh"></div></div>
+        <div class="limit" id="hud-limit" hidden></div>
+        <div class="gearbox" id="hud-gears" dir="ltr"><span>P</span><span>R</span><span>N</span><span>D</span></div>
+      </div>
+      <div class="glass scorebox"><span data-i18n="hud.score"></span><b id="hud-score">100</b></div>
+      <ol class="glass objs" id="hud-objs"></ol>
+    </aside>
+    <div class="toasts" id="toasts" aria-live="assertive"></div>
+    <div class="callout" id="callout" hidden></div>
+    <div class="pad" id="pad" dir="ltr">
+      <div class="steer">
+        <button type="button" class="pbtn" data-hold="left" id="pb-left">◀</button>
+        <button type="button" class="pbtn" data-hold="right" id="pb-right">▶</button>
+      </div>
+      <div class="rightpad">
+        <div class="gears glass" id="pad-gears" style="padding:4px">
+          <button type="button" data-gear="P">P</button><button type="button" data-gear="R">R</button><button type="button" data-gear="N">N</button><button type="button" data-gear="D">D</button>
+        </div>
+        <div class="pedals">
+          <button type="button" class="pbtn brake" data-hold="brake" id="pb-brake" data-i18n="hud.brake"></button>
+          <button type="button" class="pbtn gas" data-hold="gas" id="pb-gas" data-i18n="hud.gas"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="overlay" id="loading"><div class="card-o" style="text-align:center"><div class="spinner"></div><p data-i18n="loading"></p></div></div>
+  <div class="overlay" id="pause" hidden>
+    <div class="card-o" role="dialog" aria-modal="true" aria-labelledby="pause-h">
+      <h2 id="pause-h" data-i18n="pause.title"></h2>
+      <button type="button" class="btn primary" id="p-resume" data-i18n="pause.resume"></button>
+      <button type="button" class="btn" id="p-restart" data-i18n="pause.restart"></button>
+      <button type="button" class="btn" id="p-end" data-i18n="pause.end"></button>
+      <button type="button" class="btn" id="p-dash" data-i18n="pause.dash"></button>
+      <p class="small" data-i18n="pause.note"></p>
+      <p class="small" lang="en" dir="ltr">Masar supports learning. It does not replace practical lessons with a qualified driving instructor.</p>
+      <p class="small" lang="ar" dir="rtl">مسار أداة مساعدة على التعلّم، ولا يغني عن الدروس العملية مع مدرّب قيادة مؤهّل.</p>
+    </div>
+  </div>
+  <div class="overlay" id="sim-error" hidden>
+    <div class="card-o"><h2 data-i18n="err.title"></h2><p id="sim-error-text"></p><button type="button" class="btn primary" id="err-back" data-i18n="back"></button></div>
+  </div>
+</section>
+
+<div hidden id="canvas-store"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =========================================================
+   CONFIG
+   apiBase: set to e.g. "http://localhost:3000/api" to use the
+   optional Node/Express/MySQL backend. null = local only.
+   ========================================================= */
+var CONFIG = { apiBase: null, passScore: 70 };
+var AFRAME_SRCS = [
+  'https://cdn.jsdelivr.net/npm/aframe@1.6.0/dist/aframe-master.min.js',
+  'https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe-master.min.js',
+  'https://unpkg.com/aframe@1.5.0/dist/aframe-master.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/aframe/1.4.2/aframe.min.js'
+];
+
+/* =========================================================
+   TRANSLATIONS
+   ========================================================= */
+var I18N = {
+en: {
+  appName:'Masar', tagline:'Driving practice for beginners', langGroup:'Language',
+  'login.title':'Learn to drive in a safe virtual car', 'login.h':'Welcome to Masar',
+  'login.sub':'Sign in to save your progress, or continue as a guest.',
+  'login.side1':'Three short lessons, from your first look at the controls to parking.',
+  'login.side2':'Works with a keyboard, a touchscreen or a VR headset.',
+  email:'Email', password:'Password', signin:'Sign in', guest:'Continue as guest', or:'or',
+  demoNote:'<b>Demo sign-in.</b> This prototype has no real accounts. Any email and a password of 6 or more characters create a local profile stored only in this browser.',
+  'err.email':'Enter a valid email address, like name@example.com.',
+  'err.password':'The password must be at least 6 characters.',
+  apiError:'Could not reach the sign-in server. You are signed in locally instead.',
+  signout:'Sign out', 'badge.demo':'Demo profile', 'badge.guest':'Guest',
+  'dash.eyebrow':'Your training', 'dash.hello':'Hello, {name}', guestName:'Guest',
+  'dash.sub':'Pick up where you left off. Each lesson unlocks when you pass the one before it.',
+  start:'Start Training', startNext:'Next: {lesson}', allDone:'All lessons passed. Repeat any to keep practising.',
+  progress:'Your progress', passedOf:'{n} of 3 lessons passed',
+  levels:'Training levels', levelsHint:'Completed lessons can be repeated at any time.',
+  'st.locked':'Locked', 'st.available':'Available', 'st.passed':'Passed',
+  unlockHint:'Pass {lesson} to unlock.', best:'Best score', attempts:'Attempts', begin:'Begin', repeat:'Repeat lesson',
+  settings:'Settings', voice:'Voice guidance', voiceSub:'Reads the instructor’s guidance aloud, if your browser has a voice for this language.',
+  onscreen:'On-screen driving buttons', onscreenSub:'Steering, pedals and gear buttons on top of the 3D view. Useful on touchscreens.',
+  model:'Custom car model (GLB or glTF, optional)', modelNote:'Used for the other cars in the scene. Simple built-in shapes are used when no model is loaded or a model fails to load.',
+  modelNone:'No model loaded. Built-in shapes are used.', modelLoaded:'Model ready: {name}', modelClear:'Remove model',
+  storageLocal:'Progress is saved in this browser (local storage). No server is configured.',
+  storageApi:'Progress is also sent to the configured server.',
+  reset:'Reset progress', resetQ:'Delete all lesson progress for this profile? This cannot be undone.', resetYes:'Yes, reset', cancel:'Cancel', resetDone:'Progress reset.',
+  'l1.n':'Lesson 1', 'l2.n':'Lesson 2', 'l3.n':'Lesson 3',
+  'l1.s':'Car Basics', 'l2.s':'Driving on the Road', 'l3.s':'Traffic Situations',
+  'l1.d':'Meet the steering wheel, pedals, gear selector and dashboard, then roll forward for the first time.',
+  'l2.d':'Move off, control speed and direction, keep your lane, and handle a traffic light and a stop sign.',
+  'l3.d':'Practise a pedestrian crossing, stopping and starting, passing an obstacle, a roundabout and parking.',
+  'l1.min':'About 3 min', 'l2.min':'About 5 min', 'l3.min':'About 7 min',
+  'brief.title':'Before you start', 'brief.objectives':'Objectives', 'brief.controls':'Controls',
+  'brief.tip':'Sit comfortably. If you feel dizzy in VR, take off the headset and rest.',
+  'brief.go':'Start driving', back:'Back to dashboard',
+  'th.action':'Action', 'th.keys':'Keyboard', 'th.screen':'On screen', 'th.vr':'VR controller',
+  'c.accel':'Accelerate', 'c.brake':'Brake', 'c.steer':'Steer', 'c.gear':'Gear', 'c.look':'Look around', 'c.pause':'Pause',
+  'sc.accel':'Gas button', 'sc.brake':'Brake button', 'sc.steer':'◀ ▶ buttons', 'sc.gear':'P R N D buttons', 'sc.look':'Drag on the view', 'sc.pause':'Pause button',
+  'vr.accel':'Right trigger', 'vr.brake':'Left trigger', 'vr.steer':'Thumbstick left / right', 'vr.gear':'A or X button', 'vr.look':'Move your head', 'vr.pause':'B or Y button',
+  'k.look':'Drag with the mouse',
+  'vr.title':'VR headset', 'vr.checking':'Checking VR support…',
+  'vr.yes':'VR is supported in this browser. Press “Enter VR” in the simulator and stay seated. The view is set for a seated driver.',
+  'vr.no':'No VR headset or WebXR support found. You will drive in desktop mode with the keyboard, mouse or on-screen buttons. For VR, open this page in a WebXR browser such as the Meta Quest Browser.',
+  engineFail:'The 3D engine could not load. Check your internet connection and reload the page.',
+  loading:'Preparing the car…',
+  'hud.voice':'Voice', 'hud.pad':'Buttons', 'hud.vr':'Enter VR', 'hud.pause':'Pause', 'hud.exit':'Exit',
+  'hud.kmh':'km/h', 'hud.score':'Score', 'hud.gas':'Gas', 'hud.brake':'Brake', 'hud.guide':'INSTRUCTOR', 'hud.step':'STEP {i} OF {n}',
+  'pause.title':'Paused', 'pause.resume':'Resume', 'pause.restart':'Restart lesson', 'pause.end':'End lesson and see results', 'pause.dash':'Return to dashboard',
+  'pause.note':'Leaving for the dashboard discards this attempt.',
+  'err.title':'Something went wrong',
+  'res.score':'SCORE', 'res.passed':'Lesson passed', 'res.failed':'Not passed yet',
+  'res.need':'To pass, complete every objective with a score of {p} or more.',
+  'res.unlocked':'{lesson} is now unlocked.', 'res.allDone':'You have passed every lesson. Repeat any lesson to keep your skills sharp.',
+  'res.objectives':'Objectives', 'res.mistakes':'Mistakes', 'res.none':'No mistakes. Clean drive.', 'res.tips':'How to improve',
+  'res.time':'Time {t}', 'res.retry':'Retry lesson', 'res.next':'Next lesson', 'res.dash':'Return to dashboard',
+  'res.pts':'−{n}', 'tip.perfect':'Repeat the lesson until these steps feel automatic, then move on.',
+  'tip.incomplete':'Finish every objective. The instructor panel at the top of the screen tells you the next step.',
+  'tip.lowscore':'Drive more slowly. Lower speed gives you time to react and avoids most mistakes.',
+  'part.wheel':'Steering wheel', 'part.accel':'Accelerator', 'part.brake':'Brake', 'part.gear':'Gear selector', 'part.cluster':'Speedometer',
+  'o.wheel':'Turn the steering wheel left and right', 'o.accel':'Press the accelerator', 'o.brake':'Press and hold the brake',
+  'o.gear':'Shift from P to D while holding the brake', 'o.dash':'Find the speedometer on the dashboard', 'o.roll':'Roll forward gently and stop before the cones',
+  'o.start':'Shift to D and move off', 'o.speed30':'Hold a steady 30 km/h', 'o.lane':'Drive 150 m without leaving your lane',
+  'o.red':'Stop before the line at the red light', 'o.green':'Cross the intersection on green', 'o.stopsign':'Make a full stop at the stop sign', 'o.finish':'Stop between the finish flags',
+  'o.yield':'Give way to the pedestrian at the crossing', 'o.stopstart':'Stop in the yellow box, then move off again', 'o.obstacle':'Pass the broken-down car safely',
+  'o.roundabout':'Go around the roundabout slowly and correctly', 'o.park':'Park in the blue bay and select P',
+  's.wheel':'This is the steering wheel. It turns the front wheels. Hold A and D, or the left and right arrows, to turn it both ways.',
+  's.accel':'The accelerator is the right pedal. It makes the car go faster. The car is in P (Park), so it will not move. Press W or the up arrow.',
+  's.brake':'The brake is the left pedal. It slows and stops the car. Use your right foot for both pedals. Hold S, the down arrow or Space.',
+  's.gear':'The gear selector chooses P (Park), R (Reverse), N (Neutral) and D (Drive). Keep holding the brake and press 4 or G until D is selected.',
+  's.dash':'The dashboard shows your speed and gear. Click the speedometer behind the steering wheel, or press Enter.',
+  's.roll':'Release the brake. In D the car creeps forward on its own. Press the accelerator gently, then brake to a full stop before the orange cones.',
+  'g.start':'Hold the brake and shift to D. Then release the brake and press the accelerator gently.',
+  'g2.speed':'Build up to about 30 km/h and hold it there. Small, steady pedal movements work best.',
+  'g2.lane':'Keep the car between the dashed centre line and the solid edge line. Look far ahead and make small steering corrections.',
+  'g2.light':'Traffic light ahead. Slow down early. If it is red, stop before the white line.',
+  'g2.green':'Green light. Check the intersection is clear, then move off smoothly.',
+  'g2.stop':'Stop sign ahead. Come to a complete stop before the line, look both ways, then continue.',
+  'g2.finish':'Well done. Stop between the chequered flags to finish the lesson.',
+  'g3.cross':'Pedestrian crossing ahead. Slow down and stop if someone is crossing. Wait until they reach the other side.',
+  'g3.box':'Step 1: slow down. Step 2: stop fully inside the yellow box. Step 3: wait 2 seconds. Step 4: release the brake and move off.',
+  'g3.boxGo':'Good stop. Now release the brake and move off smoothly.',
+  'g3.obstacle':'Broken-down car in your lane. Step 1: slow down. Step 2: check the opposite lane is clear. Step 3: steer left to pass. Step 4: return to your lane.',
+  'g3.round':'Roundabout ahead. Step 1: slow to under 25 km/h. Step 2: give way to cars already in it. Step 3: steer right and keep the island on your left. Step 4: steer back into your lane on the far side.',
+  'g3.park':'Parking bay on your right. Step 1: slow right down. Step 2: steer right into the blue bay. Step 3: straighten up and stop inside the lines. Step 4: shift to P.',
+  'g3.parkP':'Nicely parked. Keep the brake pressed and shift to P.',
+  'm.red.w':'You drove through a red light.', 'm.red.f':'Slow down early when a light is ahead and wait behind the white line until it turns green.',
+  'm.lane.w':'You left your lane.', 'm.lane.f':'Look far ahead and make small steering corrections to stay in the middle of your lane.',
+  'm.speed.w':'You went over the {limit} km/h speed limit.', 'm.speed.f':'Ease off the accelerator and watch the speedometer. Brake gently if needed.',
+  'm.collision.w':'You hit an obstacle.', 'm.collision.f':'Slow down sooner, leave more space and steer around objects early.',
+  'm.pedestrian.w':'You did not give way to a pedestrian.', 'm.pedestrian.f':'At a crossing, stop and wait until the person has fully crossed.',
+  'm.stopsign.w':'You did not stop fully at the stop sign.', 'm.stopsign.f':'Bring the speed down to 0 km/h before the line, then look both ways.',
+  'm.roundfast.w':'You entered the roundabout too fast.', 'm.roundfast.f':'Slow to under 25 km/h before entering and look left for traffic already in the roundabout.',
+  'm.wrongway.w':'You went around the wrong side of the roundabout.', 'm.wrongway.f':'Keep the island on your left and drive anticlockwise.',
+  'fixLabel':'How to correct it:',
+  'i.gearMoving':'Stop the car completely before changing gear.', 'i.gearBrake':'Press and hold the brake to shift out of P.',
+  'i.inPark':'The car is in P. Hold the brake and shift to D to drive.', 'i.objDone':'Objective complete', 'i.gearLocked':'Follow the steps in order. The gear selector comes in step 4.',
+  'i.missedBox':'You passed the yellow box without stopping. Shift to R to reverse back into it, or carry on.',
+  'i.vrFail':'VR could not start here. You can keep driving on screen.', 'i.lookDown':'Look down to see it.',
+  'c.objective':'NEXT', 'c.paused':'PAUSED', 'c.done':'Lesson complete', 'c.limit':'LIMIT'
+},
+ar: {
+  appName:'مسار', tagline:'تدريب على القيادة للمبتدئين', langGroup:'اللغة',
+  'login.title':'تعلّم القيادة داخل سيارة افتراضية آمنة', 'login.h':'مرحبًا بك في مسار',
+  'login.sub':'سجّل الدخول لحفظ تقدّمك، أو تابع كضيف.',
+  'login.side1':'ثلاثة دروس قصيرة، من التعرّف على أدوات التحكم حتى ركن السيارة.',
+  'login.side2':'يعمل بلوحة المفاتيح أو الشاشة اللمسية أو نظارة الواقع الافتراضي.',
+  email:'البريد الإلكتروني', password:'كلمة المرور', signin:'تسجيل الدخول', guest:'المتابعة كضيف', or:'أو',
+  demoNote:'<b>تسجيل دخول تجريبي.</b> لا يحتوي هذا النموذج الأولي على حسابات حقيقية. أي بريد إلكتروني وكلمة مرور من 6 أحرف أو أكثر تنشئ ملفًا محليًا يُحفظ في هذا المتصفح فقط.',
+  'err.email':'أدخل بريدًا إلكترونيًا صحيحًا، مثل name@example.com.',
+  'err.password':'يجب ألا تقل كلمة المرور عن 6 أحرف.',
+  apiError:'تعذّر الوصول إلى خادم تسجيل الدخول. تم تسجيل دخولك محليًا بدلًا من ذلك.',
+  signout:'تسجيل الخروج', 'badge.demo':'ملف تجريبي', 'badge.guest':'ضيف',
+  'dash.eyebrow':'تدريبك', 'dash.hello':'مرحبًا، {name}', guestName:'ضيف',
+  'dash.sub':'تابع من حيث توقفت. يُفتح كل درس عند اجتياز الدرس الذي قبله.',
+  start:'ابدأ التدريب', startNext:'التالي: {lesson}', allDone:'اجتزت جميع الدروس. كرّر أي درس لمواصلة التدريب.',
+  progress:'تقدّمك', passedOf:'اجتزت {n} من 3 دروس',
+  levels:'مستويات التدريب', levelsHint:'يمكنك إعادة الدروس المكتملة في أي وقت.',
+  'st.locked':'مقفل', 'st.available':'متاح', 'st.passed':'مُجتاز',
+  unlockHint:'اجتز {lesson} لفتحه.', best:'أفضل نتيجة', attempts:'المحاولات', begin:'ابدأ', repeat:'أعد الدرس',
+  settings:'الإعدادات', voice:'الإرشاد الصوتي', voiceSub:'يقرأ إرشادات المدرّب بصوت مسموع إذا كان متصفحك يدعم صوتًا لهذه اللغة.',
+  onscreen:'أزرار القيادة على الشاشة', onscreenSub:'أزرار المقود والدواسات وناقل الحركة فوق المشهد ثلاثي الأبعاد. مفيدة على الشاشات اللمسية.',
+  model:'نموذج سيارة مخصّص (GLB أو glTF، اختياري)', modelNote:'يُستخدم للسيارات الأخرى في المشهد. تُستخدم أشكال بسيطة مدمجة إذا لم يُحمَّل نموذج أو فشل تحميله.',
+  modelNone:'لم يُحمَّل نموذج. تُستخدم الأشكال المدمجة.', modelLoaded:'النموذج جاهز: {name}', modelClear:'إزالة النموذج',
+  storageLocal:'يُحفظ التقدّم في هذا المتصفح (التخزين المحلي). لا يوجد خادم مُعدّ.',
+  storageApi:'يُرسل التقدّم أيضًا إلى الخادم المُعدّ.',
+  reset:'إعادة ضبط التقدّم', resetQ:'حذف كل تقدّم الدروس لهذا الملف؟ لا يمكن التراجع عن ذلك.', resetYes:'نعم، أعد الضبط', cancel:'إلغاء', resetDone:'تمت إعادة ضبط التقدّم.',
+  'l1.n':'التدريب الأول', 'l2.n':'التدريب الثاني', 'l3.n':'التدريب الثالث',
+  'l1.s':'أساسيات السيارة', 'l2.s':'القيادة في الطريق', 'l3.s':'المواقف المرورية',
+  'l1.d':'تعرّف على المقود والدواسات وناقل الحركة ولوحة العدادات، ثم حرّك السيارة لأول مرة.',
+  'l2.d':'انطلق بالسيارة، وتحكّم في السرعة والاتجاه، والتزم بمسارك، وتعامل مع إشارة ضوئية وإشارة قف.',
+  'l3.d':'تدرّب على معبر المشاة، والتوقف والانطلاق، وتجاوز عائق، والدوّار، والوقوف في الموقف.',
+  'l1.min':'نحو 3 دقائق', 'l2.min':'نحو 5 دقائق', 'l3.min':'نحو 7 دقائق',
+  'brief.title':'قبل أن تبدأ', 'brief.objectives':'الأهداف', 'brief.controls':'أدوات التحكم',
+  'brief.tip':'اجلس بوضعية مريحة. إذا شعرت بالدوار أثناء استخدام الواقع الافتراضي، انزع النظارة واسترح.',
+  'brief.go':'ابدأ القيادة', back:'العودة إلى لوحة التحكم',
+  'th.action':'الإجراء', 'th.keys':'لوحة المفاتيح', 'th.screen':'على الشاشة', 'th.vr':'يد التحكم في الواقع الافتراضي',
+  'c.accel':'التسارع', 'c.brake':'الفرامل', 'c.steer':'التوجيه', 'c.gear':'ناقل الحركة', 'c.look':'النظر حولك', 'c.pause':'إيقاف مؤقت',
+  'sc.accel':'زر الوقود', 'sc.brake':'زر الفرامل', 'sc.steer':'زرّا ◀ ▶', 'sc.gear':'أزرار P R N D', 'sc.look':'اسحب على المشهد', 'sc.pause':'زر الإيقاف المؤقت',
+  'vr.accel':'الزناد الأيمن', 'vr.brake':'الزناد الأيسر', 'vr.steer':'عصا التحكم يمينًا ويسارًا', 'vr.gear':'الزر A أو X', 'vr.look':'حرّك رأسك', 'vr.pause':'الزر B أو Y',
+  'k.look':'اسحب بالفأرة',
+  'vr.title':'نظارة الواقع الافتراضي', 'vr.checking':'جارٍ التحقق من دعم الواقع الافتراضي…',
+  'vr.yes':'هذا المتصفح يدعم الواقع الافتراضي. اضغط «دخول الواقع الافتراضي» داخل المحاكاة وابقَ جالسًا، فالعرض مُعدّ لسائق جالس.',
+  'vr.no':'لم يُعثر على نظارة واقع افتراضي أو دعم WebXR. ستقود في وضع سطح المكتب باستخدام لوحة المفاتيح أو الفأرة أو الأزرار على الشاشة. لاستخدام الواقع الافتراضي، افتح هذه الصفحة في متصفح يدعم WebXR مثل متصفح Meta Quest.',
+  engineFail:'تعذّر تحميل محرك العرض ثلاثي الأبعاد. تحقّق من اتصالك بالإنترنت وأعد تحميل الصفحة.',
+  loading:'جارٍ تجهيز السيارة…',
+  'hud.voice':'الصوت', 'hud.pad':'الأزرار', 'hud.vr':'دخول الواقع الافتراضي', 'hud.pause':'إيقاف مؤقت', 'hud.exit':'خروج',
+  'hud.kmh':'كم/س', 'hud.score':'النتيجة', 'hud.gas':'وقود', 'hud.brake':'فرامل', 'hud.guide':'المدرّب', 'hud.step':'الخطوة {i} من {n}',
+  'pause.title':'متوقف مؤقتًا', 'pause.resume':'متابعة', 'pause.restart':'إعادة الدرس', 'pause.end':'إنهاء الدرس وعرض النتائج', 'pause.dash':'العودة إلى لوحة التحكم',
+  'pause.note':'العودة إلى لوحة التحكم تلغي هذه المحاولة.',
+  'err.title':'حدث خطأ',
+  'res.score':'النتيجة', 'res.passed':'تم اجتياز الدرس', 'res.failed':'لم تجتز الدرس بعد',
+  'res.need':'للاجتياز، أكمل جميع الأهداف بنتيجة {p} أو أكثر.',
+  'res.unlocked':'تم فتح {lesson}.', 'res.allDone':'اجتزت جميع الدروس. كرّر أي درس للحفاظ على مهاراتك.',
+  'res.objectives':'الأهداف', 'res.mistakes':'الأخطاء', 'res.none':'لا أخطاء. قيادة نظيفة.', 'res.tips':'كيف تتحسّن',
+  'res.time':'الوقت {t}', 'res.retry':'أعد المحاولة', 'res.next':'الدرس التالي', 'res.dash':'العودة إلى لوحة التحكم',
+  'res.pts':'−{n}', 'tip.perfect':'كرّر الدرس حتى تصبح هذه الخطوات تلقائية، ثم انتقل إلى التالي.',
+  'tip.incomplete':'أكمِل جميع الأهداف. لوحة المدرّب أعلى الشاشة تخبرك بالخطوة التالية.',
+  'tip.lowscore':'قُد ببطء أكثر. السرعة المنخفضة تمنحك وقتًا للتصرّف وتجنّبك معظم الأخطاء.',
+  'part.wheel':'المقود', 'part.accel':'دواسة الوقود', 'part.brake':'الفرامل', 'part.gear':'ناقل الحركة', 'part.cluster':'عدّاد السرعة',
+  'o.wheel':'أدر المقود يسارًا ويمينًا', 'o.accel':'اضغط دواسة الوقود', 'o.brake':'اضغط دواسة الفرامل باستمرار',
+  'o.gear':'انقل الحركة من P إلى D مع الضغط على الفرامل', 'o.dash':'حدّد عدّاد السرعة في لوحة العدادات', 'o.roll':'تقدّم ببطء وتوقّف قبل الأقماع',
+  'o.start':'انقل إلى D وانطلق', 'o.speed30':'حافظ على سرعة ثابتة 30 كم/س', 'o.lane':'قُد 150 مترًا دون الخروج من مسارك',
+  'o.red':'توقّف قبل الخط عند الإشارة الحمراء', 'o.green':'اعبر التقاطع عند الإشارة الخضراء', 'o.stopsign':'توقّف تمامًا عند إشارة قف', 'o.finish':'توقّف بين أعلام النهاية',
+  'o.yield':'أفسح المجال للمشاة عند المعبر', 'o.stopstart':'توقّف داخل المربع الأصفر ثم انطلق مجددًا', 'o.obstacle':'تجاوز السيارة المتعطّلة بأمان',
+  'o.roundabout':'دُر حول الدوّار ببطء وبالاتجاه الصحيح', 'o.park':'اركن السيارة في الموقف الأزرق واختر P',
+  's.wheel':'هذا هو المقود، وهو يوجّه العجلات الأمامية. اضغط باستمرار A وD أو السهمين الأيسر والأيمن لإدارته في الاتجاهين.',
+  's.accel':'دواسة الوقود هي الدواسة اليمنى، وهي تزيد سرعة السيارة. السيارة على وضع P (الوقوف) لذلك لن تتحرك. اضغط W أو السهم العلوي.',
+  's.brake':'الفرامل هي الدواسة اليسرى، وهي تُبطئ السيارة وتوقفها. استخدم قدمك اليمنى للدواستين. اضغط باستمرار S أو السهم السفلي أو المسافة.',
+  's.gear':'ناقل الحركة يختار P (الوقوف) وR (الرجوع للخلف) وN (المحايد) وD (القيادة). استمر في الضغط على الفرامل واضغط 4 أو G حتى تختار D.',
+  's.dash':'لوحة العدادات تعرض سرعتك ووضع ناقل الحركة. انقر على عدّاد السرعة خلف المقود، أو اضغط Enter.',
+  's.roll':'ارفع قدمك عن الفرامل. في وضع D تتقدّم السيارة ببطء من تلقاء نفسها. اضغط دواسة الوقود برفق، ثم اضغط الفرامل لتتوقف تمامًا قبل الأقماع البرتقالية.',
+  'g.start':'اضغط الفرامل وانقل إلى D. ثم ارفع قدمك عن الفرامل واضغط دواسة الوقود برفق.',
+  'g2.speed':'زد سرعتك إلى نحو 30 كم/س وحافظ عليها. الحركات الصغيرة الثابتة على الدواسة هي الأفضل.',
+  'g2.lane':'أبقِ السيارة بين خط المنتصف المتقطّع وخط الحافة المتصل. انظر بعيدًا إلى الأمام وصحّح الاتجاه بحركات صغيرة.',
+  'g2.light':'إشارة ضوئية أمامك. خفّف السرعة مبكرًا. إذا كانت حمراء فتوقّف قبل الخط الأبيض.',
+  'g2.green':'الإشارة خضراء. تأكّد من خلو التقاطع، ثم انطلق بهدوء.',
+  'g2.stop':'إشارة قف أمامك. توقّف تمامًا قبل الخط، وانظر في الاتجاهين، ثم تابع.',
+  'g2.finish':'أحسنت. توقّف بين الأعلام المربّعة لإنهاء الدرس.',
+  'g3.cross':'معبر مشاة أمامك. خفّف السرعة وتوقّف إذا كان أحد يعبر. انتظر حتى يصل إلى الجهة الأخرى.',
+  'g3.box':'الخطوة 1: خفّف السرعة. الخطوة 2: توقّف تمامًا داخل المربع الأصفر. الخطوة 3: انتظر ثانيتين. الخطوة 4: ارفع قدمك عن الفرامل وانطلق.',
+  'g3.boxGo':'توقّف جيد. الآن ارفع قدمك عن الفرامل وانطلق بهدوء.',
+  'g3.obstacle':'سيارة متعطّلة في مسارك. الخطوة 1: خفّف السرعة. الخطوة 2: تأكّد من خلو المسار المقابل. الخطوة 3: انحرف يسارًا للتجاوز. الخطوة 4: عُد إلى مسارك.',
+  'g3.round':'دوّار أمامك. الخطوة 1: خفّف السرعة إلى أقل من 25 كم/س. الخطوة 2: أعطِ الأولوية للسيارات داخل الدوّار. الخطوة 3: انعطف يمينًا وأبقِ الجزيرة على يسارك. الخطوة 4: عُد إلى مسارك في الجهة المقابلة.',
+  'g3.park':'موقف على يمينك. الخطوة 1: خفّف السرعة كثيرًا. الخطوة 2: انعطف يمينًا إلى الموقف الأزرق. الخطوة 3: اعتدل وتوقّف داخل الخطوط. الخطوة 4: انقل إلى P.',
+  'g3.parkP':'ركنت السيارة جيدًا. استمر في الضغط على الفرامل وانقل إلى P.',
+  'm.red.w':'تجاوزت الإشارة الحمراء.', 'm.red.f':'خفّف السرعة مبكرًا عند الاقتراب من إشارة، وانتظر خلف الخط الأبيض حتى تصبح خضراء.',
+  'm.lane.w':'خرجت من مسارك.', 'm.lane.f':'انظر بعيدًا إلى الأمام وصحّح الاتجاه بحركات صغيرة لتبقى في منتصف مسارك.',
+  'm.speed.w':'تجاوزت حدّ السرعة {limit} كم/س.', 'm.speed.f':'ارفع قدمك قليلًا عن دواسة الوقود وراقب عدّاد السرعة. استخدم الفرامل برفق عند الحاجة.',
+  'm.collision.w':'اصطدمت بعائق.', 'm.collision.f':'خفّف السرعة مبكرًا، واترك مسافة أكبر، وابتعد عن العوائق في وقت مبكر.',
+  'm.pedestrian.w':'لم تُفسح المجال للمشاة.', 'm.pedestrian.f':'عند المعبر، توقّف وانتظر حتى يعبر الشخص بالكامل.',
+  'm.stopsign.w':'لم تتوقّف تمامًا عند إشارة قف.', 'm.stopsign.f':'خفّض السرعة إلى 0 كم/س قبل الخط، ثم انظر في الاتجاهين.',
+  'm.roundfast.w':'دخلت الدوّار بسرعة كبيرة.', 'm.roundfast.f':'خفّف السرعة إلى أقل من 25 كم/س قبل الدخول، وانظر إلى اليسار لرؤية السيارات داخل الدوّار.',
+  'm.wrongway.w':'درت حول الدوّار من الجهة الخاطئة.', 'm.wrongway.f':'أبقِ الجزيرة على يسارك ودُر عكس اتجاه عقارب الساعة.',
+  'fixLabel':'كيف تصحّح ذلك:',
+  'i.gearMoving':'أوقف السيارة تمامًا قبل تغيير وضع ناقل الحركة.', 'i.gearBrake':'اضغط الفرامل باستمرار للنقل من وضع P.',
+  'i.inPark':'السيارة على وضع P. اضغط الفرامل وانقل إلى D للقيادة.', 'i.objDone':'تم إنجاز الهدف', 'i.gearLocked':'اتبع الخطوات بالترتيب. ناقل الحركة في الخطوة الرابعة.',
+  'i.missedBox':'تجاوزت المربع الأصفر دون توقّف. انقل إلى R للرجوع إليه، أو تابع.',
+  'i.vrFail':'تعذّر بدء الواقع الافتراضي هنا. يمكنك متابعة القيادة على الشاشة.', 'i.lookDown':'انظر إلى الأسفل لرؤيته.',
+  'c.objective':'التالي', 'c.paused':'متوقف', 'c.done':'اكتمل الدرس', 'c.limit':'الحد'
+}};
+
+var lang = 'en';
+function t(key, vars){
+  var s = (I18N[lang] && I18N[lang][key]); if (s == null) s = I18N.en[key]; if (s == null) s = key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, function(_, k){ return vars[k] != null ? vars[k] : ''; });
+  return s;
+}
+function lessonName(n){ return t('l'+n+'.n') + ' — ' + t('l'+n+'.s'); }
+
+/* =========================================================
+   STORAGE (local, with in-memory fallback)
+   ========================================================= */
+var mem = {};
+var Store = {
+  get: function(k, d){ try { var v = localStorage.getItem('masar.v1.'+k); return v == null ? (k in mem ? mem[k] : d) : JSON.parse(v); } catch(e){ return k in mem ? mem[k] : d; } },
+  set: function(k, v){ mem[k] = v; try { localStorage.setItem('masar.v1.'+k, JSON.stringify(v)); } catch(e){} },
+  del: function(k){ delete mem[k]; try { localStorage.removeItem('masar.v1.'+k); } catch(e){} }
+};
+var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+var App = {
+  session: Store.get('session', null),
+  settings: Object.assign({ voice: true, pad: true }, Store.get('settings', {})),
+  modelUrl: null, modelName: null, lesson: 1, last: null
+};
+function saveSettings(){ Store.set('settings', App.settings); }
+function profiles(){ return Store.get('profiles', {}); }
+function profile(){ var p = profiles()[App.session ? App.session.id : 'guest']; return p || { lessons: {} }; }
+function saveProfile(p){ var all = profiles(); all[App.session.id] = p; Store.set('profiles', all); }
+function lessonRec(n){ return profile().lessons[n] || { passed:false, best:0, attempts:0 }; }
+function unlocked(n){ return n === 1 || !!lessonRec(n-1).passed; }
+function passedCount(){ var c=0; for (var i=1;i<=3;i++) if (lessonRec(i).passed) c++; return c; }
+
+/* Optional backend adapter. Only used when CONFIG.apiBase is set. */
+var Api = {
+  on: function(){ return !!CONFIG.apiBase; },
+  login: function(email, password){
+    return fetch(CONFIG.apiBase + '/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email:email, password:password }) })
+      .then(function(r){ if (!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  },
+  saveResult: function(result){
+    if (!this.on() || !App.session || !App.session.token) return;
+    fetch(CONFIG.apiBase + '/results', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+App.session.token}, body: JSON.stringify(result) }).catch(function(){});
+  }
+};
+
+/* =========================================================
+   DOM helpers + i18n application
+   ========================================================= */
+var $ = function(s){ return document.querySelector(s); };
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function setLang(l){
+  lang = l === 'ar' ? 'ar' : 'en';
+  Store.set('lang', lang);
+  var root = document.documentElement; root.lang = lang; root.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-i18n]').forEach(function(el){ el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-aria]').forEach(function(el){ el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'))); });
+  document.querySelectorAll('#lang-seg button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.lang === lang)); });
+  $('#demo-note').innerHTML = t('demoNote');
+  $('#login-alt').textContent = lang === 'ar' ? 'Masar' : 'مسار';
+  $('#hud-lang').textContent = lang === 'ar' ? 'English' : 'العربية';
+  $('#hud-lang').setAttribute('lang', lang === 'ar' ? 'en' : 'ar');
+  $('#pb-left').setAttribute('aria-label', lang === 'ar' ? 'توجيه لليسار' : 'Steer left');
+  $('#pb-right').setAttribute('aria-label', lang === 'ar' ? 'توجيه لليمين' : 'Steer right');
+  renderUser(); renderDashboard(); if (current === 'screen-brief') renderBrief(); if (current === 'screen-results' && App.last) renderResults(App.last);
+  if (Sim.st) Sim.relabel();
+  ['e-email','e-pass'].forEach(function(id){ var e=$('#'+id); if (e.dataset.key) e.textContent = t(e.dataset.key); });
+}
+
+var current = 'screen-login';
+function show(id){
+  current = id;
+  document.querySelectorAll('.screen').forEach(function(s){ s.hidden = s.id !== id; });
+  var sim = id === 'screen-sim';
+  $('#topbar').hidden = sim; $('#disclaimer').hidden = sim;
+  document.body.style.overflow = sim ? 'hidden' : '';
+  window.scrollTo(0,0);
+}
+
+/* =========================================================
+   LOGIN
+   ========================================================= */
+function setErr(id, key){ var e = $('#'+id); e.dataset.key = key || ''; e.textContent = key ? t(key) : ''; }
+$('#login-form').addEventListener('submit', function(ev){
+  ev.preventDefault();
+  var email = $('#f-email').value.trim(), pass = $('#f-pass').value;
+  var ok = true;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) { setErr('e-email','err.email'); $('#f-email').setAttribute('aria-invalid','true'); ok = false; } else { setErr('e-email'); $('#f-email').removeAttribute('aria-invalid'); }
+  if (pass.length < 6) { setErr('e-pass','err.password'); $('#f-pass').setAttribute('aria-invalid','true'); ok = false; } else { setErr('e-pass'); $('#f-pass').removeAttribute('aria-invalid'); }
+  if (!ok) return;
+  var local = function(){ return { id: 'u:'+email.toLowerCase(), name: email.split('@')[0], email: email, kind: 'demo' }; };
+  if (Api.on()) {
+    Api.login(email, pass).then(function(r){ signIn({ id:'api:'+r.user.id, name:r.user.name || email.split('@')[0], email:email, kind:'api', token:r.token }); })
+      .catch(function(){ signIn(local()); setTimeout(function(){ alertInline(t('apiError')); }, 50); });
+  } else signIn(local());
+});
+$('#btn-guest').addEventListener('click', function(){ signIn({ id:'guest', name:null, kind:'guest' }); });
+$('#btn-signout').addEventListener('click', function(){ App.session = null; Store.del('session'); $('#f-pass').value=''; renderUser(); show('screen-login'); });
+function alertInline(msg){ var r=$('#reset-msg'); r.textContent = msg; }
+function signIn(sess){ App.session = sess; Store.set('session', sess); renderUser(); renderDashboard(); show('screen-dashboard'); }
+function renderUser(){
+  var s = App.session; $('#userchip').hidden = !s; if (!s) return;
+  $('#user-name').textContent = s.kind === 'guest' ? t('guestName') : s.name;
+  $('#user-tag').textContent = s.kind === 'guest' ? t('badge.guest') : (s.kind === 'demo' ? t('badge.demo') : 'API');
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+function nextLesson(){ for (var i=1;i<=3;i++){ if (unlocked(i) && !lessonRec(i).passed) return i; } return 0; }
+function renderDashboard(){
+  if (!App.session) return;
+  var name = App.session.kind === 'guest' ? t('guestName') : App.session.name;
+  $('#dash-hello').textContent = t('dash.hello', { name: name });
+  $('#start-alt').textContent = lang === 'ar' ? 'Start Training' : 'ابدأ التدريب';
+  $('#start-alt').lang = lang === 'ar' ? 'en' : 'ar';
+  var nx = nextLesson();
+  $('#start-next').textContent = nx ? t('startNext', { lesson: t('l'+nx+'.n') }) : t('allDone');
+  var pc = passedCount();
+  $('#prog-text').textContent = t('passedOf', { n: pc });
+  $('#prog-fill').style.width = (pc/3*100) + '%';
+  var stops = ''; for (var i=1;i<=3;i++) stops += '<div class="stop"><span class="marker mono'+(lessonRec(i).passed?' passed':'')+'">'+i+'</span></div>';
+  $('#prog-stops').innerHTML = stops;
+  var html = '';
+  for (var n=1;n<=3;n++){
+    var r = lessonRec(n), un = unlocked(n), st = r.passed ? 'passed' : (un ? 'available' : 'locked');
+    html += '<article class="card '+st+'">'
+      + '<div class="card-top"><div class="plate"><b>'+n+'</b><span>'+(lang==='ar'?'درس':'LESSON')+'</span></div>'
+      + '<div style="min-width:0"><h3>'+esc(t('l'+n+'.s'))+'</h3><span class="chip '+st+'">'+esc(t('st.'+st))+'</span></div></div>'
+      + '<div class="card-body"><p>'+esc(t('l'+n+'.d'))+'</p>'
+      + '<div class="stats"><span>'+esc(t('l'+n+'.min'))+'</span><span>'+esc(t('best'))+' <b>'+(r.attempts? r.best : '–')+'</b></span><span>'+esc(t('attempts'))+' <b>'+r.attempts+'</b></span></div>'
+      + (un ? '' : '<p>'+esc(t('unlockHint', { lesson: t('l'+(n-1)+'.n') }))+'</p>')
+      + '</div>'
+      + '<button type="button" class="btn '+(st==='available'?'primary':'')+'" data-lesson="'+n+'" '+(un?'':'disabled')+'>'+esc(un ? (r.passed ? t('repeat') : t('begin')) : t('st.locked'))+'</button>'
+      + '</article>';
+  }
+  $('#cards').innerHTML = html;
+  $('#set-voice').checked = !!App.settings.voice; $('#set-pad').checked = !!App.settings.pad;
+  $('#storage-note').textContent = t('storageLocal') + (Api.on() ? ' ' + t('storageApi') : '');
+  $('#model-status').textContent = App.modelName ? t('modelLoaded', { name: App.modelName }) : t('modelNone');
+  $('#btn-model-clear').hidden = !App.modelUrl;
+}
+$('#cards').addEventListener('click', function(e){ var b = e.target.closest('button[data-lesson]'); if (b && !b.disabled) openBrief(+b.dataset.lesson); });
+$('#btn-start').addEventListener('click', function(){ openBrief(nextLesson() || 3); });
+$('#set-voice').addEventListener('change', function(){ App.settings.voice = this.checked; saveSettings(); });
+$('#set-pad').addEventListener('change', function(){ App.settings.pad = this.checked; saveSettings(); });
+$('#set-model').addEventListener('change', function(){
+  var f = this.files && this.files[0]; if (!f) return;
+  if (App.modelUrl) URL.revokeObjectURL(App.modelUrl);
+  App.modelUrl = URL.createObjectURL(f); App.modelName = f.name; renderDashboard();
+});
+$('#btn-model-clear').addEventListener('click', function(){ if (App.modelUrl) URL.revokeObjectURL(App.modelUrl); App.modelUrl = null; App.modelName = null; $('#set-model').value=''; renderDashboard(); });
+$('#btn-reset').addEventListener('click', function(){ $('#reset-confirm').hidden = false; $('#btn-reset-no').focus(); });
+$('#btn-reset-no').addEventListener('click', function(){ $('#reset-confirm').hidden = true; });
+$('#btn-reset-yes').addEventListener('click', function(){ saveProfile({ lessons:{} }); $('#reset-confirm').hidden = true; renderDashboard(); $('#reset-msg').textContent = t('resetDone'); });
+document.querySelectorAll('#lang-seg button').forEach(function(b){ b.addEventListener('click', function(){ setLang(b.dataset.lang); }); });
+
+/* =========================================================
+   BRIEFING
+   ========================================================= */
+var vrSupport = null; // null unknown, true, false
+function checkVR(){
+  if (vrSupport !== null) return Promise.resolve(vrSupport);
+  try {
+    if (!navigator.xr || !navigator.xr.isSessionSupported) { vrSupport = false; return Promise.resolve(false); }
+    return navigator.xr.isSessionSupported('immersive-vr').then(function(ok){ vrSupport = !!ok; return vrSupport; }, function(){ vrSupport = false; return false; });
+  } catch(e){ vrSupport = false; return Promise.resolve(false); }
+}
+function openBrief(n){ App.lesson = n; renderBrief(); show('screen-brief'); checkVR().then(renderBrief); loadAFrame().catch(function(){ $('#engine-fail').hidden = false; }); }
+function renderBrief(){
+  var n = App.lesson, L = LESSONS[n];
+  $('#brief-title').textContent = lessonName(n);
+  $('#brief-desc').textContent = t('l'+n+'.d');
+  $('#brief-objs').innerHTML = L.objectives.map(function(o){ return '<li>'+esc(t('o.'+o))+'</li>'; }).join('');
+  var rows = [
+    ['accel', '<kbd>W</kbd> / <kbd>↑</kbd>'], ['brake', '<kbd>S</kbd> / <kbd>↓</kbd> / <kbd>Space</kbd>'],
+    ['steer', '<kbd>A</kbd> <kbd>D</kbd> / <kbd>←</kbd> <kbd>→</kbd>'], ['gear', '<kbd>1</kbd> P · <kbd>2</kbd> R · <kbd>3</kbd> N · <kbd>4</kbd> D · <kbd>G</kbd>'],
+    ['look', esc(t('k.look'))], ['pause', '<kbd>Esc</kbd>']
+  ];
+  $('#ctrl-table').innerHTML = '<thead><tr><th>'+esc(t('th.action'))+'</th><th>'+esc(t('th.keys'))+'</th><th>'+esc(t('th.screen'))+'</th><th>'+esc(t('th.vr'))+'</th></tr></thead><tbody>'
+    + rows.map(function(r){ return '<tr><td>'+esc(t('c.'+r[0]))+'</td><td><bdi dir="ltr">'+r[1]+'</bdi></td><td>'+esc(t('sc.'+r[0]))+'</td><td>'+esc(t('vr.'+r[0]))+'</td></tr>'; }).join('') + '</tbody>';
+  var dot = $('#vr-dot');
+  if (vrSupport === null) { dot.className = 'vrdot'; $('#vr-text').textContent = t('vr.checking'); }
+  else { dot.className = 'vrdot ' + (vrSupport ? 'yes' : 'no'); $('#vr-text').textContent = t(vrSupport ? 'vr.yes' : 'vr.no'); }
+}
+$('#btn-brief-back').addEventListener('click', function(){ renderDashboard(); show('screen-dashboard'); });
+$('#btn-go').addEventListener('click', function(){ startLesson(App.lesson); });
+
+/* =========================================================
+   A-FRAME LOADER
+   ========================================================= */
+var afPromise = null;
+function loadAFrame(){
+  if (window.AFRAME) return Promise.resolve();
+  if (afPromise) return afPromise;
+  afPromise = new Promise(function(resolve, reject){
+    var i = 0;
+    (function next(){
+      if (i >= AFRAME_SRCS.length) { afPromise = null; reject(new Error('A-Frame failed to load')); return; }
+      var s = document.createElement('script'); s.src = AFRAME_SRCS[i++]; s.async = true;
+      s.onload = function(){ window.AFRAME ? resolve() : next(); };
+      s.onerror = function(){ s.remove(); next(); };
+      document.head.appendChild(s);
+    })();
+  });
+  return afPromise;
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+var Input = { keys: {}, hold: { gas:0, brake:0, left:0, right:0 }, xr: { gas:0, brake:0, steer:0, b4:false, b5:false } };
+Input.read = function(){
+  var k = this.keys, h = this.hold, x = this.xr;
+  var throttle = Math.max((k.KeyW||k.ArrowUp)?1:0, h.gas, x.gas);
+  var brake = Math.max((k.KeyS||k.ArrowDown||k.Space)?1:0, h.brake, x.brake);
+  var steer = ((k.KeyD||k.ArrowRight||h.right)?1:0) - ((k.KeyA||k.ArrowLeft||h.left)?1:0) + x.steer;
+  return { throttle: throttle, brake: brake, steer: Math.max(-1, Math.min(1, steer)) };
+};
+var DRIVE_KEYS = ['KeyW','ArrowUp','KeyS','ArrowDown','Space','KeyA','ArrowLeft','KeyD','ArrowRight'];
+window.addEventListener('keydown', function(e){
+  if (current !== 'screen-sim' || !Sim.st) return;
+  if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+  if (DRIVE_KEYS.indexOf(e.code) >= 0) { e.preventDefault(); Input.keys[e.code] = true; }
+  if (e.repeat) return;
+  if (e.code === 'Escape') { e.preventDefault(); Sim.togglePause(); return; }
+  if (Sim.paused || Sim.st.ended) return;
+  var gm = { Digit1:'P', Digit2:'R', Digit3:'N', Digit4:'D', Numpad1:'P', Numpad2:'R', Numpad3:'N', Numpad4:'D' };
+  if (gm[e.code]) Sim.setGear(gm[e.code]);
+  else if (e.code === 'KeyG') Sim.cycleGear(e.shiftKey ? -1 : 1);
+  else if (e.code === 'Enter' || e.code === 'NumpadEnter') Sim.partClicked('cluster');
+});
+window.addEventListener('keyup', function(e){ delete Input.keys[e.code]; });
+window.addEventListener('blur', function(){ Input.keys = {}; for (var k in Input.hold) Input.hold[k] = 0; });
+document.querySelectorAll('[data-hold]').forEach(function(b){
+  var key = b.dataset.hold;
+  var on = function(e){ e.preventDefault(); Input.hold[key] = 1; b.classList.add('held'); try { b.setPointerCapture(e.pointerId); } catch(_){} };
+  var off = function(){ Input.hold[key] = 0; b.classList.remove('held'); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
+  b.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+});
+document.querySelectorAll('#pad-gears button').forEach(function(b){ b.addEventListener('click', function(){ Sim.setGear(b.dataset.gear); }); });
+
+/* =========================================================
+   AUDIO + VOICE
+   ========================================================= */
+var actx = null;
+function beep(kind){
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    var o = actx.createOscillator(), g = actx.createGain(), now = actx.currentTime;
+    o.type = kind === 'bad' ? 'square' : 'sine';
+    o.frequency.setValueAtTime(kind === 'bad' ? 220 : 660, now);
+    if (kind === 'good') o.frequency.setValueAtTime(880, now + 0.09);
+    g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(0.08, now + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, now + (kind==='bad'?0.35:0.22));
+    o.connect(g).connect(actx.destination); o.start(now); o.stop(now + 0.4);
+  } catch(e){}
+}
+function speak(text){
+  if (!App.settings.voice || !('speechSynthesis' in window)) return;
+  try {
+    speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text); u.lang = lang === 'ar' ? 'ar-SA' : 'en-US'; u.rate = lang === 'ar' ? 0.95 : 1;
+    var vs = speechSynthesis.getVoices().filter(function(v){ return v.lang && v.lang.toLowerCase().indexOf(lang) === 0; });
+    if (vs.length) u.voice = vs[0];
+    speechSynthesis.speak(u);
+  } catch(e){}
+}
+
+/* =========================================================
+   LESSON DEFINITIONS
+   ========================================================= */
+var LESSONS = {
+  1: { objectives:['wheel','accel','brake','gear','dash','roll'], limit:0, steps:true },
+  2: { objectives:['start','speed30','lane','red','green','stopsign','finish'], limit:50 },
+  3: { objectives:['yield','stopstart','obstacle','roundabout','park'], limit:40 }
+};
+var PENALTY = { red:20, lane:5, speed:10, collision:15, pedestrian:20, stopsign:10, roundfast:10, wrongway:10 };
+var STEP_PARTS = { wheel:'wheel', accel:'accel', brake:'brake', gear:'gear', dash:'cluster', roll:null };
+var STEP_VIEW = { wheel:[0,-0.15], accel:[-0.12,-0.85], brake:[0.02,-0.85], gear:[-0.55,-0.7], dash:[0,-0.3], roll:[0,0] };
+
+/* =========================================================
+   SIMULATOR
+   ========================================================= */
+var Sim = { st:null, paused:false, sceneEl:null, ready:false, T:null, group:null, worldEl:null, carEl:null, camEl:null, tex:{}, canv:{}, hudT:0, canvT:0, view:null };
+
+function startLesson(n){
+  App.lesson = n; show('screen-sim');
+  $('#loading').hidden = false; $('#pause').hidden = true; $('#sim-error').hidden = true;
+  $('#pad').hidden = !App.settings.pad;
+  ensureScene().then(function(){ $('#loading').hidden = true; Sim.begin(n); })
+    .catch(function(err){ $('#loading').hidden = true; $('#sim-error-text').textContent = t('engineFail'); $('#sim-error').hidden = false; console.error(err); });
+}
+$('#err-back').addEventListener('click', function(){ show('screen-dashboard'); renderDashboard(); });
+
+function ensureScene(){
+  if (Sim.ready) { Sim.resume(); return Promise.resolve(); }
+  return loadAFrame().then(function(){
+    return new Promise(function(resolve){
+      registerComponents();
+      $('#scene-host').innerHTML =
+        '<a-scene embedded renderer="antialias: true; colorManagement: true" xr-mode-ui="enabled: false" vr-mode-ui="enabled: false" loading-screen="enabled: false" device-orientation-permission-ui="enabled: false" '
+        + 'background="color: #b9d3ea" fog="type: linear; color: #c9dcec; near: 70; far: 330" cursor="rayOrigin: mouse; fuse: false" raycaster="objects: .clickable; far: 4" sim-loop>'
+        + '<a-entity light="type: ambient; color: #ffffff; intensity: 0.9"></a-entity>'
+        + '<a-entity light="type: hemisphere; color: #e8f2ff; groundColor: #b59d6e; intensity: 0.6"></a-entity>'
+        + '<a-entity light="type: directional; color: #fff6e6; intensity: 1.4" position="-40 70 30"></a-entity>'
+        + '<a-entity id="world"></a-entity>'
+        + carInteriorHTML()
+        + '</a-scene>';
+      Sim.sceneEl = document.querySelector('a-scene');
+      var done = function(){
+        Sim.T = AFRAME.THREE; Sim.worldEl = $('#world'); Sim.carEl = $('#car'); Sim.camEl = $('#cam');
+        Sim.group = new Sim.T.Group(); Sim.worldEl.setObject3D('static', Sim.group);
+        setupCanvases(); bindParts();
+        Sim.sceneEl.addEventListener('enter-vr', function(){ document.body.classList.add('in-vr'); });
+        Sim.sceneEl.addEventListener('exit-vr', function(){ document.body.classList.remove('in-vr'); });
+        Sim.ready = true; resolve();
+      };
+      if (Sim.sceneEl.hasLoaded) done(); else Sim.sceneEl.addEventListener('loaded', done, { once:true });
+    });
+  });
+}
+
+function registerComponents(){
+  if (AFRAME.components['sim-loop']) return;
+  AFRAME.registerComponent('sim-loop', { tick: function(time, dt){ Sim.tick(Math.min((dt||16)/1000, 0.05)); } });
+}
+
+/* ---------- car interior (A-Frame primitives) ---------- */
+function carInteriorHTML(){
+  var paint = '#1f6f8b';
+  return '<a-entity id="car">'
+  // camera / driver head (left-hand drive)
+  + '<a-entity id="head" position="-0.37 0 0.05"><a-entity id="cam" camera="near: 0.05; far: 600" position="0 1.22 0" look-controls="pointerLockEnabled: false; magicWindowTrackingEnabled: false; reverseMouseDrag: false"></a-entity></a-entity>'
+  // body: hood, roof, pillars, doors, floor
+  + '<a-box position="0 0.84 -2.25" width="1.86" height="0.14" depth="1.9" color="'+paint+'"></a-box>'
+  + '<a-box position="0 0.78 -3.22" width="1.86" height="0.2" depth="0.08" color="#14495c"></a-box>'
+  + '<a-box position="0 1.6 0.35" width="1.82" height="0.06" depth="1.5" color="#3a4048"></a-box>'
+  + '<a-box position="0.88 1.3 -0.5" width="0.07" height="0.75" depth="0.08" rotation="38 0 0" color="#2a2f35"></a-box>'
+  + '<a-box position="-0.88 1.3 -0.5" width="0.07" height="0.75" depth="0.08" rotation="38 0 0" color="#2a2f35"></a-box>'
+  + '<a-box position="0.96 0.72 0.2" width="0.08" height="0.6" depth="2.0" color="#40464e"></a-box>'
+  + '<a-box position="-0.96 0.72 0.2" width="0.08" height="0.6" depth="2.0" color="#40464e"></a-box>'
+  + '<a-box position="0.96 1.03 0.2" width="0.1" height="0.04" depth="2.0" color="#262b30"></a-box>'
+  + '<a-box position="-0.96 1.03 0.2" width="0.1" height="0.04" depth="2.0" color="#262b30"></a-box>'
+  + '<a-box position="0 0.12 -0.2" width="1.86" height="0.06" depth="2.2" color="#1d2125"></a-box>'
+  // mirrors
+  + '<a-box position="0 1.5 -0.5" width="0.26" height="0.07" depth="0.03" color="#16191c"></a-box>'
+  + '<a-box position="0 1.5 -0.48" width="0.24" height="0.055" depth="0.01" color="#9fb5c7"></a-box>'
+  + '<a-box position="-1.06 1.02 -0.62" width="0.2" height="0.13" depth="0.06" color="'+paint+'"></a-box>'
+  + '<a-box position="1.06 1.02 -0.62" width="0.2" height="0.13" depth="0.06" color="'+paint+'"></a-box>'
+  // dashboard
+  + '<a-box position="0 0.82 -0.95" width="1.86" height="0.32" depth="0.62" color="#2b3036"></a-box>'
+  + '<a-box position="0 0.995 -0.98" width="1.86" height="0.03" depth="0.68" color="#1b1e22"></a-box>'
+  + '<a-box position="-0.37 1.05 -0.74" width="0.42" height="0.1" depth="0.14" color="#1b1e22"></a-box>'
+  + '<a-entity id="p-cluster" class="clickable" data-part="cluster" position="-0.37 0.955 -0.655" rotation="-12 0 0"></a-entity>'
+  + '<a-entity id="p-screen" position="0.16 0.93 -0.655" rotation="-10 -10 0"></a-entity>'
+  // console + gear selector
+  + '<a-box position="0 0.48 -0.3" width="0.3" height="0.4" depth="0.95" color="#262a2f"></a-box>'
+  + '<a-entity id="p-gear" class="clickable" data-part="gear" position="0 0.69 -0.35">'
+  +   '<a-box position="0 0 0" width="0.16" height="0.03" depth="0.26" color="#15181b"></a-box>'
+  +   '<a-entity id="gear-lever" position="0 0 0"><a-cylinder position="0 0.07 0" radius="0.012" height="0.14" color="#888"></a-cylinder><a-sphere position="0 0.15 0" radius="0.035" color="#22262a"></a-sphere></a-entity>'
+  +   '<a-entity id="p-gearplate" position="0.06 0.017 0" rotation="-90 0 0"></a-entity>'
+  + '</a-entity>'
+  // passenger seat
+  + '<a-box position="0.42 0.42 0.15" width="0.52" height="0.14" depth="0.55" color="#3b3f45"></a-box>'
+  + '<a-box position="0.42 0.82 0.42" width="0.52" height="0.7" depth="0.12" rotation="-10 0 0" color="#3b3f45"></a-box>'
+  // steering column + wheel
+  + '<a-cylinder position="-0.37 0.9 -0.62" radius="0.035" height="0.36" rotation="62 0 0" color="#1b1e22"></a-cylinder>'
+  + '<a-entity id="p-wheel" class="clickable" data-part="wheel" position="-0.37 0.96 -0.44" rotation="-24 0 0">'
+  +   '<a-entity id="wheel-spin">'
+  +     '<a-torus radius="0.19" radius-tubular="0.022" segments-tubular="40" color="#151719"></a-torus>'
+  +     '<a-box position="-0.1 -0.01 0" width="0.19" height="0.035" depth="0.02" color="#25282c"></a-box>'
+  +     '<a-box position="0.1 -0.01 0" width="0.19" height="0.035" depth="0.02" color="#25282c"></a-box>'
+  +     '<a-box position="0 -0.11 0" width="0.035" height="0.17" depth="0.02" color="#25282c"></a-box>'
+  +     '<a-cylinder radius="0.065" height="0.05" rotation="90 0 0" color="#2c3035"></a-cylinder>'
+  +     '<a-box position="0 0.17 0.012" width="0.03" height="0.03" depth="0.01" color="#f2b01e"></a-box>'
+  +   '</a-entity>'
+  + '</a-entity>'
+  // pedals
+  + '<a-box id="p-brake" class="clickable" data-part="brake" position="-0.43 0.27 -0.8" width="0.13" height="0.08" depth="0.03" rotation="-30 0 0" color="#3b4046"></a-box>'
+  + '<a-box id="p-accel" class="clickable" data-part="accel" position="-0.2 0.28 -0.8" width="0.07" height="0.18" depth="0.025" rotation="-30 0 0" color="#3b4046"></a-box>'
+  + '</a-entity>';
+}
+
+/* ---------- canvases for dashboard displays and signs ---------- */
+function mkCanvas(w, h){ var c = document.createElement('canvas'); c.width = w; c.height = h; $('#canvas-store').appendChild(c); return c; }
+function texFor(canvas){ var T = Sim.T, tx = new T.CanvasTexture(canvas); if ('colorSpace' in tx && T.SRGBColorSpace) tx.colorSpace = T.SRGBColorSpace; else if (T.sRGBEncoding) tx.encoding = T.sRGBEncoding; tx.anisotropy = 4; return tx; }
+function planeMesh(tex, w, h, transparent){ var T = Sim.T; return new T.Mesh(new T.PlaneGeometry(w, h), new T.MeshBasicMaterial({ map: tex, transparent: !!transparent, alphaTest: transparent ? 0.05 : 0, toneMapped: false })); }
+function setupCanvases(){
+  Sim.canv.cluster = mkCanvas(512, 224); Sim.tex.cluster = texFor(Sim.canv.cluster);
+  $('#p-cluster').setObject3D('mesh', planeMesh(Sim.tex.cluster, 0.34, 0.149));
+  Sim.canv.screen = mkCanvas(512, 320); Sim.tex.screen = texFor(Sim.canv.screen);
+  $('#p-screen').setObject3D('mesh', planeMesh(Sim.tex.screen, 0.34, 0.2125));
+  Sim.canv.gear = mkCanvas(64, 192); Sim.tex.gear = texFor(Sim.canv.gear);
+  $('#p-gearplate').setObject3D('mesh', planeMesh(Sim.tex.gear, 0.035, 0.105, true));
+}
+function bindParts(){
+  document.querySelectorAll('#car .clickable').forEach(function(el){ el.addEventListener('click', function(){ Sim.partClicked(el.dataset.part); }); });
+}
+
+function arFont(size, w){ return (w||600) + ' ' + size + 'px "IBM Plex Sans Arabic","Readex Pro",system-ui,sans-serif'; }
+function wrapLines(ctx, text, maxW){
+  var words = String(text).split(/\s+/), lines = [], line = '';
+  words.forEach(function(w){ var test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; } else line = test; });
+  if (line) lines.push(line); return lines;
+}
+function drawCluster(){
+  var c = Sim.canv.cluster, x = c.getContext('2d'), st = Sim.st, kmh = st ? Math.abs(st.car.v)*3.6 : 0;
+  x.fillStyle = '#0b1014'; x.fillRect(0,0,512,224);
+  if (st && st.hl === 'cluster') { x.strokeStyle = '#f2b01e'; x.lineWidth = 10; x.strokeRect(5,5,502,214); }
+  // dial
+  var cx = 130, cy = 120, r = 92, a0 = Math.PI*0.75, a1 = Math.PI*2.25;
+  x.lineWidth = 6; x.strokeStyle = '#2c3a45'; x.beginPath(); x.arc(cx,cy,r,a0,a1); x.stroke();
+  x.strokeStyle = '#f2b01e'; x.beginPath(); x.arc(cx,cy,r,a0,a0+(a1-a0)*Math.min(kmh,120)/120); x.stroke();
+  x.fillStyle = '#9fb0bd'; x.font = '500 16px "IBM Plex Mono",monospace'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (var s=0; s<=120; s+=20){ var a = a0+(a1-a0)*s/120; x.fillText(String(s), cx+Math.cos(a)*(r-24), cy+Math.sin(a)*(r-24)); }
+  var na = a0+(a1-a0)*Math.min(kmh,120)/120; x.strokeStyle = '#ff5a48'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx,cy); x.lineTo(cx+Math.cos(na)*(r-8), cy+Math.sin(na)*(r-8)); x.stroke();
+  x.fillStyle = '#e8eef2'; x.beginPath(); x.arc(cx,cy,7,0,7); x.fill();
+  // digital
+  x.fillStyle = '#ffffff'; x.font = '600 76px "IBM Plex Mono",monospace'; x.fillText(String(Math.round(kmh)), 340, 92);
+  x.fillStyle = '#9fb0bd'; x.font = arFont(22, 500); x.fillText(t('hud.kmh'), 340, 142);
+  var g = st ? st.car.gear : 'P'; ['P','R','N','D'].forEach(function(l, i){ x.fillStyle = l===g ? '#f2b01e' : '#4b5a66'; x.font = '600 30px "IBM Plex Mono",monospace'; x.fillText(l, 280 + i*40, 192); });
+  if (st && LESSONS[st.n].limit) { x.fillStyle='#fff'; x.beginPath(); x.arc(470,52,30,0,7); x.fill(); x.strokeStyle='#d0342a'; x.lineWidth=7; x.stroke(); x.fillStyle='#111'; x.font='700 24px "IBM Plex Mono",monospace'; x.fillText(String(LESSONS[st.n].limit), 470, 54); }
+  Sim.tex.cluster.needsUpdate = true;
+}
+function drawScreen(){
+  var c = Sim.canv.screen, x = c.getContext('2d'), st = Sim.st; if (!st) return;
+  var rtl = lang === 'ar';
+  x.fillStyle = '#0d1520'; x.fillRect(0,0,512,320);
+  x.fillStyle = '#1a2735'; x.fillRect(0,0,512,54);
+  x.direction = rtl ? 'rtl' : 'ltr'; x.textBaseline = 'middle';
+  x.textAlign = rtl ? 'right' : 'left'; var X = rtl ? 492 : 20;
+  x.fillStyle = '#f2b01e'; x.font = arFont(22, 700); x.fillText(t('l'+st.n+'.s'), X, 28);
+  x.textAlign = rtl ? 'left' : 'right'; x.fillStyle = '#e8eef2'; x.font = '600 24px "IBM Plex Mono",monospace'; x.fillText(String(st.score), rtl ? 20 : 492, 28);
+  x.textAlign = rtl ? 'right' : 'left';
+  var head, body;
+  if (Sim.paused) { head = t('c.paused'); body = t('pause.note'); }
+  else if (st.ended) { head = t('c.done'); body = ''; }
+  else { var nx = st.objOrder.filter(function(o){ return !st.obj[o]; })[0]; head = t('c.objective'); body = nx ? t('o.'+nx) : ''; }
+  x.fillStyle = '#8fa3b3'; x.font = arFont(18, 600); x.fillText(head, X, 80);
+  x.fillStyle = '#ffffff'; x.font = arFont(26, 600);
+  wrapLines(x, body, 470).slice(0,3).forEach(function(l, i){ x.fillText(l, X, 116 + i*34); });
+  if (st.lastMsg && st.t - st.lastMsg.t < 6) {
+    x.fillStyle = st.lastMsg.bad ? '#5a1d18' : '#123a2a'; x.fillRect(12, 228, 488, 80);
+    x.fillStyle = st.lastMsg.bad ? '#ffb3aa' : '#a6f0cb'; x.font = arFont(20, 600);
+    wrapLines(x, st.lastMsg.text, 460).slice(0,2).forEach(function(l, i){ x.fillText(l, X, 252 + i*28); });
+  }
+  Sim.tex.screen.needsUpdate = true;
+}
+function drawGear(){
+  var c = Sim.canv.gear, x = c.getContext('2d'), g = Sim.st ? Sim.st.car.gear : 'P';
+  x.clearRect(0,0,64,192); x.textAlign='center'; x.textBaseline='middle'; x.font='700 36px "IBM Plex Mono",monospace';
+  ['P','R','N','D'].forEach(function(l,i){ x.fillStyle = l===g ? '#f2b01e' : '#7d8a94'; x.fillText(l, 32, 26+i*46); });
+  Sim.tex.gear.needsUpdate = true;
+}
+
+/* ---------- 3D world helpers (three.js meshes inside the A-Frame scene) ---------- */
+var matCache = {}, geoCache = {};
+function M(color){ if (!matCache[color]) matCache[color] = new Sim.T.MeshLambertMaterial({ color: color }); return matCache[color]; }
+function MB(color){ var k='b'+color; if (!matCache[k]) matCache[k] = new Sim.T.MeshBasicMaterial({ color: color, toneMapped:false }); return matCache[k]; }
+function G(kind, a, b, c){ var k = kind+a+'_'+b+'_'+c, T = Sim.T; if (!geoCache[k]) geoCache[k] = kind==='box' ? new T.BoxGeometry(a,b,c) : kind==='cyl' ? new T.CylinderGeometry(a,b,c,14) : kind==='sph' ? new T.SphereGeometry(a,14,10) : new T.ConeGeometry(a,b,14); return geoCache[k]; }
+function box(p, w,h,d, color, x,y,z, ry){ var m = new Sim.T.Mesh(G('box',w,h,d), M(color)); m.position.set(x,y,z); if (ry) m.rotation.y = ry; p.add(m); return m; }
+function cyl(p, rt,rb,h, color, x,y,z){ var m = new Sim.T.Mesh(G('cyl',rt,rb,h), M(color)); m.position.set(x,y,z); p.add(m); return m; }
+function sph(p, r, color, x,y,z, basic){ var m = new Sim.T.Mesh(G('sph',r), basic ? MB(color) : M(color)); m.position.set(x,y,z); p.add(m); return m; }
+function flat(p, w, l, material, x, y, z, rz){ var T = Sim.T, m = new T.Mesh(new T.PlaneGeometry(w, l), material); m.rotation.set(-Math.PI/2, 0, rz||0); m.position.set(x,y,z); p.add(m); return m; }
+function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var r = Math.imul(seed ^ seed >>> 15, 1 | seed); r = r + Math.imul(r ^ r >>> 7, 61 | r) ^ r; return ((r ^ r >>> 14) >>> 0) / 4294967296; }; }
+
+var roadCanvasCache = null;
+function roadMaterial(len){
+  var T = Sim.T;
+  if (!roadCanvasCache) {
+    var c = mkCanvas(128, 256), x = c.getContext('2d');
+    x.fillStyle = '#41464c'; x.fillRect(0,0,128,256);
+    var r = rng(7); for (var i=0;i<900;i++){ x.fillStyle = r()<0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.08)'; x.fillRect(r()*128, r()*256, 1.5, 1.5); }
+    x.fillStyle = '#f2f2ee'; x.fillRect(3,0,4,256); x.fillRect(121,0,4,256);
+    x.fillRect(62,0,4,128);
+    roadCanvasCache = c;
+  }
+  var tx = texFor(roadCanvasCache); tx.wrapS = tx.wrapT = T.RepeatWrapping; tx.repeat.set(1, len/12);
+  return new T.MeshLambertMaterial({ map: tx });
+}
+function asphalt(){ return M('#41464c'); }
+function roadZ(p, z0, z1){ var len = z0 - z1; flat(p, 7, len, roadMaterial(len), 0, 0.01, (z0+z1)/2); }
+function crossRoad(p, zc, half){ flat(p, 7, half*2, roadMaterial(half*2), 0, 0.012, zc, Math.PI/2); flat(p, 7, 7, asphalt(), 0, 0.014, zc); }
+function stopLine(p, z){ flat(p, 3.3, 0.4, MB('#f4f4f0'), 1.75, 0.018, z); }
+function zebra(p, z){ for (var i=0;i<7;i++) flat(p, 0.5, 4, MB('#f4f4f0'), -3 + i, 0.018, z); }
+function sidewalk(p, side, z0, z1){ var len = z0 - z1; box(p, 3, 0.15, len, '#cfc6b6', side*5, 0.075, (z0+z1)/2); box(p, 0.18, 0.17, len, '#e9e4da', side*3.55, 0.085, (z0+z1)/2); }
+function buildings(p, side, z0, z1, seed){
+  var r = rng(seed), cols = ['#d8c9a8','#e6dccb','#c9b58f','#efe9df','#b9a47e','#d2c4a6','#e0d3bb'];
+  var z = z0;
+  while (z > z1) {
+    var d = 8 + r()*12, w = 7 + r()*8, h = 4 + r()*14, col = cols[Math.floor(r()*cols.length)];
+    var cx = side*(9 + w/2 + r()*3), cz = z - d/2;
+    if (cz - d/2 > z1) {
+      box(p, w, h, d, col, cx, h/2, cz);
+      for (var f = 3; f < h - 1; f += 3.2) box(p, w + 0.06, 0.9, d*0.86, '#5f6d78', cx, f, cz);
+      box(p, w + 0.3, 0.4, d + 0.3, '#bfae8a', cx, h + 0.2, cz);
+    }
+    z -= d + 2 + r()*6;
+  }
+}
+function palm(p, x, z){
+  var g = new Sim.T.Group(); g.position.set(x, 0, z); p.add(g);
+  cyl(g, 0.13, 0.2, 5, '#8a6a44', 0, 2.5, 0);
+  for (var i=0;i<7;i++){ var a = i/7*Math.PI*2, l = box(g, 0.35, 0.05, 2.2, '#3d7a3a', Math.sin(a)*0.9, 5.0, Math.cos(a)*0.9, a); l.rotation.x = 0.35; l.rotation.order = 'YXZ'; }
+  sph(g, 0.3, '#5b4a2f', 0, 5.05, 0);
+}
+function palms(p, side, z0, z1){ for (var z = z0; z > z1; z -= 16) palm(p, side*5.6, z); }
+
+/* signs drawn to canvas */
+var signCache = {};
+function signCanvas(type){
+  if (signCache[type]) return signCache[type];
+  var c = mkCanvas(256,256), x = c.getContext('2d'); x.textAlign='center'; x.textBaseline='middle';
+  if (type.indexOf('limit') === 0) {
+    x.fillStyle='#fff'; x.beginPath(); x.arc(128,128,120,0,7); x.fill(); x.lineWidth=26; x.strokeStyle='#d0342a'; x.beginPath(); x.arc(128,128,106,0,7); x.stroke();
+    x.fillStyle='#111'; x.font='700 104px "IBM Plex Mono",monospace'; x.fillText(type.slice(5), 128, 136);
+  } else if (type === 'stop') {
+    x.fillStyle='#fff'; x.beginPath(); for (var i=0;i<8;i++){ var a=Math.PI/8+i*Math.PI/4; x.lineTo(128+Math.cos(a)*124,128+Math.sin(a)*124);} x.closePath(); x.fill();
+    x.fillStyle='#c62f25'; x.beginPath(); for (i=0;i<8;i++){ a=Math.PI/8+i*Math.PI/4; x.lineTo(128+Math.cos(a)*112,128+Math.sin(a)*112);} x.closePath(); x.fill();
+    x.fillStyle='#fff'; x.font='700 84px "IBM Plex Sans Arabic",sans-serif'; x.fillText('قف', 128, 98); x.font='700 52px "Readex Pro",sans-serif'; x.fillText('STOP', 128, 176);
+  } else if (type === 'crossing' || type === 'parking' || type === 'round') {
+    x.fillStyle='#1f5bb5'; if (type==='round'){ x.beginPath(); x.arc(128,128,122,0,7); x.fill(); } else x.fillRect(8,8,240,240);
+    x.strokeStyle='#fff'; x.fillStyle='#fff'; x.lineWidth=8;
+    if (type==='parking') { x.font='700 170px "Readex Pro",sans-serif'; x.fillText('P',128,140); }
+    else if (type==='crossing') {
+      x.beginPath(); x.moveTo(128,30); x.lineTo(228,214); x.lineTo(28,214); x.closePath(); x.fill();
+      x.fillStyle='#111'; x.beginPath(); x.arc(128,92,13,0,7); x.fill(); x.strokeStyle='#111'; x.lineWidth=10; x.lineCap='round';
+      x.beginPath(); x.moveTo(128,108); x.lineTo(124,150); x.lineTo(104,186); x.moveTo(124,150); x.lineTo(146,186); x.moveTo(104,128); x.lineTo(150,124); x.stroke();
+      for (i=0;i<4;i++) x.fillRect(70+i*32, 196, 18, 8);
+    } else {
+      for (i=0;i<3;i++){ var a0 = i*Math.PI*2/3 + 0.35, a1 = a0 + 1.55; x.beginPath(); x.arc(128,128,62,a0,a1); x.stroke();
+        var ex = 128+Math.cos(a1)*62, ey = 128+Math.sin(a1)*62, tx = -Math.sin(a1), ty = Math.cos(a1);
+        x.beginPath(); x.moveTo(ex+tx*18, ey+ty*18); x.lineTo(ex+Math.cos(a1)*16, ey+Math.sin(a1)*16); x.lineTo(ex-Math.cos(a1)*16, ey-Math.sin(a1)*16); x.closePath(); x.fill(); }
+    }
+  } else if (type === 'finish') {
+    for (var yy=0; yy<4; yy++) for (var xx=0; xx<16; xx++){ x.fillStyle = (xx+yy)%2 ? '#111' : '#fff'; x.fillRect(xx*16, yy*16, 16, 16); }
+    x.fillStyle='#f2b01e'; x.fillRect(0,64,256,192); x.fillStyle='#111'; x.font='700 64px "IBM Plex Sans Arabic",sans-serif'; x.fillText('النهاية',128,120); x.font='700 46px "Readex Pro",sans-serif'; x.fillText('FINISH',128,196);
+  } else if (type === 'hazard') {
+    x.fillStyle='#d0342a'; x.beginPath(); x.moveTo(128,16); x.lineTo(244,232); x.lineTo(12,232); x.closePath(); x.fill();
+    x.fillStyle='#fff'; x.beginPath(); x.moveTo(128,70); x.lineTo(200,206); x.lineTo(56,206); x.closePath(); x.fill();
+  }
+  signCache[type] = c; return c;
+}
+function sign(p, type, x, z, h, size){
+  size = size || 0.9; h = h || 2.3;
+  cyl(p, 0.045, 0.045, h, '#8d969e', x, h/2, z);
+  var mesh = planeMesh(texFor(signCanvas(type)), size, size, true); mesh.position.set(x, h + size/2 - 0.1, z + 0.03); p.add(mesh);
+  var back = new Sim.T.Mesh(new Sim.T.PlaneGeometry(size*0.98, size*0.98), M('#9aa3ab')); back.rotation.y = Math.PI; back.position.set(x, h + size/2 - 0.1, z + 0.02); p.add(back);
+}
+function trafficLight(p, x, z, h){
+  h = h || 3; var T = Sim.T;
+  cyl(p, 0.07, 0.07, h, '#3a4047', x, h/2, z);
+  box(p, 0.38, 1.05, 0.28, '#1e2226', x, h + 0.45, z);
+  var mk = function(y){ var m = new T.Mesh(G('sph',0.12), new T.MeshBasicMaterial({ color:'#222', toneMapped:false })); m.position.set(x, h + y, z + 0.15); p.add(m); return m; };
+  var bulbs = { red: mk(0.78), yellow: mk(0.45), green: mk(0.12) };
+  var on = { red:'#ff2a1a', yellow:'#ffb21a', green:'#22e07a' }, off = { red:'#3a1210', yellow:'#3a2a0c', green:'#0e2e1c' };
+  return { set: function(s){ for (var k in bulbs) bulbs[k].material.color.set(k === s ? on[k] : off[k]); } };
+}
+function cone(p, x, z, st){
+  cyl(p, 0.04, 0.22, 0.6, '#f26a1b', x, 0.3, z); cyl(p, 0.13, 0.16, 0.1, '#f4f4f0', x, 0.3, z); box(p, 0.5, 0.04, 0.5, '#f26a1b', x, 0.02, z);
+  if (st) st.colliders.push({ id:'cone', type:'circle', x:x, z:z, r:0.28 });
+}
+function primitiveCar(color){
+  var g = new Sim.T.Group();
+  box(g, 1.8, 0.62, 4.3, color, 0, 0.62, 0); box(g, 1.62, 0.55, 2.2, color, 0, 1.2, 0.25);
+  box(g, 1.64, 0.42, 2.0, '#22303a', 0, 1.2, 0.25);
+  [[-0.85,-1.35],[0.85,-1.35],[-0.85,1.35],[0.85,1.35]].forEach(function(w){ var m = cyl(g, 0.34, 0.34, 0.24, '#151719', w[0], 0.34, w[1]); m.rotation.z = Math.PI/2; });
+  box(g, 1.5, 0.12, 0.05, '#e9eef2', 0, 0.75, -2.16); box(g, 1.5, 0.12, 0.05, '#b3261e', 0, 0.75, 2.16);
+  return g;
+}
+function spawnCar(color, x, z, ry){
+  if (App.modelUrl) {
+    var e = document.createElement('a-entity');
+    e.setAttribute('position', { x:x, y:0, z:z }); e.setAttribute('rotation', { x:0, y:(ry||0)*180/Math.PI, z:0 });
+    e.setAttribute('gltf-model', 'url(' + App.modelUrl + ')');
+    e.addEventListener('model-loaded', function(){
+      var m = e.getObject3D('mesh'); if (!m) return; var T = Sim.T;
+      var b = new T.Box3().setFromObject(m), s = b.getSize(new T.Vector3()), k = 4.3 / Math.max(s.x, s.z, 0.01);
+      m.scale.multiplyScalar(k); b.setFromObject(m); m.position.y -= b.min.y - e.object3D.position.y;
+    });
+    e.addEventListener('model-error', function(){ e.object3D.add(primitiveCar(color)); });
+    Sim.worldEl.appendChild(e); return e.object3D;
+  }
+  var g = primitiveCar(color); g.position.set(x, 0, z); g.rotation.y = ry || 0; Sim.group.add(g); return g;
+}
+function person(p, shirt, x, z){
+  var g = new Sim.T.Group(); g.position.set(x, 0, z); p.add(g);
+  var legs = [];
+  [-0.1, 0.1].forEach(function(dx){ var hip = new Sim.T.Group(); hip.position.set(dx, 0.85, 0); g.add(hip); box(hip, 0.13, 0.85, 0.15, '#2d3540', 0, -0.42, 0); legs.push(hip); });
+  box(g, 0.42, 0.62, 0.24, shirt, 0, 1.17, 0); sph(g, 0.12, '#b0805a', 0, 1.62, 0); sph(g, 0.125, '#2a221c', 0, 1.67, 0.02);
+  box(g, 0.1, 0.55, 0.12, shirt, -0.27, 1.18, 0); box(g, 0.1, 0.55, 0.12, shirt, 0.27, 1.18, 0);
+  g.userData.legs = legs; g.userData.phase = Math.random()*6; return g;
+}
+function walkAnim(g, dt, moving){ var d = g.userData; if (moving) d.phase += dt*7; var s = moving ? Math.sin(d.phase)*0.5 : 0; d.legs[0].rotation.x = s; d.legs[1].rotation.x = -s; }
+
+function clearWorld(){
+  var g = Sim.group; while (g.children.length) g.remove(g.children[0]);
+  Array.prototype.slice.call(Sim.worldEl.children).forEach(function(c){ c.parentNode.removeChild(c); });
+}
+function ground(p, z0, z1){ flat(p, 600, z0 - z1 + 300, M('#cdb98f'), 0, 0, (z0+z1)/2); }
+function strollers(st, list){
+  var cols = ['#c0392b','#2e86c1','#f4f4f0','#7d3c98','#16a085','#d68910'];
+  list.forEach(function(s, i){
+    var p = person(Sim.group, cols[i % cols.length], s[0], s[1]); var dir = i % 2 ? 1 : -1, z0 = s[1] - 14, z1 = s[1] + 14;
+    p.rotation.y = dir > 0 ? Math.PI : 0;
+    st.dyn.push(function(dt){ p.position.z += dir*dt*1.2; if (p.position.z > z1) { dir = -1; p.rotation.y = 0; } if (p.position.z < z0) { dir = 1; p.rotation.y = Math.PI; } walkAnim(p, dt, true); });
+  });
+}
+function barrier(p, st, z, x0, x1){
+  for (var x = x0; x < x1; x += 1.2) box(p, 1.1, 0.5, 0.3, Math.round((x - x0)/1.2) % 2 ? '#f4f4f0' : '#d0342a', x + 0.55, 0.6, z);
+  st.colliders.push({ id:'barrier', type:'box', x0:x0, x1:x1, z0:z - 0.3, z1:z + 0.3 });
+}
+
+/* ---------- course builders ---------- */
+function build1(st){
+  var p = Sim.group; ground(p, 40, -80);
+  roadZ(p, 40, -80);
+  sidewalk(p, -1, 40, -80); sidewalk(p, 1, 40, -80);
+  buildings(p, -1, 36, -80, 11); buildings(p, 1, 36, -80, 12);
+  palms(p, -1, 30, -80); palms(p, 1, 22, -80);
+  cone(p, 0.9, -15.2, st); cone(p, 1.75, -15.2, st); cone(p, 2.6, -15.2, st);
+  flat(p, 3.3, 0.3, MB('#f2b01e'), 1.75, 0.018, -13.4);
+  spawnCar('#c0c6cc', -1.75, -30, Math.PI); st.colliders.push({ id:'parked', type:'box', x0:-2.65, x1:-0.85, z0:-32.2, z1:-27.8 });
+  barrier(p, st, 6, -3.5, 3.5); barrier(p, st, -40, -3.5, 3.5);
+  strollers(st, [[-5, -10], [5, -26], [-5.2, -40]]);
+}
+function build2(st){
+  var p = Sim.group; ground(p, 40, -420);
+  roadZ(p, 40, -410);
+  crossRoad(p, -140, 120); crossRoad(p, -270, 120);
+  stopLine(p, -135.5); stopLine(p, -265.5);
+  [[40,-136.4],[-143.6,-266.4],[-273.6,-410]].forEach(function(s){ sidewalk(p,-1,s[0],s[1]); sidewalk(p,1,s[0],s[1]); });
+  [[36,-130],[-150,-262],[-280,-410]].forEach(function(s,i){ buildings(p,-1,s[0], s[1], 20+i); buildings(p,1,s[0], s[1], 30+i); });
+  palms(p,-1,30,-130); palms(p,1,22,-130); palms(p,-1,-150,-260); palms(p,1,-158,-260); palms(p,-1,-280,-400);
+  sign(p, 'limit50', 4.2, -20); sign(p, 'limit50', 4.2, -200);
+  var tlA = trafficLight(p, 4.3, -134.8, 3), tlB = trafficLight(p, 4.3, -145.6, 4.2);
+  st.l.tl = { set: function(s){ tlA.set(s); tlB.set(s); } }; st.l.tl.set('green');
+  sign(p, 'stop', 4.2, -264.8);
+  // finish banner
+  cyl(p, 0.08, 0.08, 4.6, '#8d969e', -0.4, 2.3, -348); cyl(p, 0.08, 0.08, 4.6, '#8d969e', 4.1, 2.3, -348);
+  var fb = planeMesh(texFor(signCanvas('finish')), 4.5, 1.6, false); fb.position.set(1.85, 4.1, -348); p.add(fb);
+  flat(p, 3.3, 0.3, MB('#f4f4f0'), 1.75, 0.018, -352.5);
+  barrier(p, st, 6, -3.5, 3.5); barrier(p, st, -395, -3.5, 3.5);
+  // cross traffic
+  var cc = spawnCar('#b03a2e', -80, -138.25, -Math.PI/2); st.l.cross = cc;
+  st.colliders.push({ id:'crosscar', type:'circle', o: cc, r:1.6 });
+  strollers(st, [[-5,-40],[5,-90],[-5,-200],[5,-230],[-5,-320],[5,-300]]);
+}
+function build3(st){
+  var p = Sim.group, T = Sim.T; ground(p, 40, -500);
+  roadZ(p, 40, -304); roadZ(p, -336, -490);
+  zebra(p, -80); sign(p, 'crossing', 4.2, -74); sign(p, 'limit40', 4.2, -20);
+  // stop box
+  [[1.75,-148,3.0,0.2],[1.75,-156,3.0,0.2]].forEach(function(b){ flat(p, b[2], b[3], MB('#f2c22e'), b[0], 0.018, b[1]); });
+  flat(p, 0.2, 8, MB('#f2c22e'), 0.35, 0.018, -152); flat(p, 0.2, 8, MB('#f2c22e'), 3.15, 0.018, -152);
+  // obstacle: broken car with hazards
+  spawnCar('#9aa1a8', 1.75, -220, 0.06);
+  st.colliders.push({ id:'broken', type:'box', x0:0.75, x1:2.75, z0:-222.3, z1:-217.7 });
+  var hz = [sph(p, 0.08, '#552200', 1.0, 0.78, -217.8, true), sph(p, 0.08, '#552200', 2.5, 0.78, -217.8, true)], ht = 0;
+  st.dyn.push(function(dt){ ht += dt; var on = (ht % 0.8) < 0.4; hz.forEach(function(h){ h.material.color.set(on ? '#ffb21a' : '#552200'); }); });
+  var tri = planeMesh(texFor(signCanvas('hazard')), 0.5, 0.5, true); tri.position.set(1.75, 0.25, -209); p.add(tri);
+  st.colliders.push({ id:'broken', type:'circle', x:1.75, z:-209, r:0.25 });
+  cone(p, 2.9, -214); cone(p, 2.2, -213);
+  // oncoming car
+  var oc = spawnCar('#2f4f7f', -1.75, -600, Math.PI); st.l.onc = { o: oc, active:false };
+  st.colliders.push({ id:'oncoming', type:'circle', o: oc, r:1.6 });
+  // roundabout
+  var ring = new T.Mesh(new T.CircleGeometry(18, 64), asphalt()); ring.rotation.x = -Math.PI/2; ring.position.set(0, 0.013, -320); p.add(ring);
+  var edge = new T.Mesh(new T.RingGeometry(17.4, 17.6, 64), MB('#f4f4f0')); edge.rotation.x = -Math.PI/2; edge.position.set(0, 0.016, -320); p.add(edge);
+  var curb = new T.Mesh(new T.CylinderGeometry(8.2, 8.2, 0.22, 48), M('#e9e4da')); curb.position.set(0, 0.11, -320); p.add(curb);
+  var isl = new T.Mesh(new T.CylinderGeometry(8, 8, 0.3, 48), M('#7aa35a')); isl.position.set(0, 0.15, -320); p.add(isl);
+  palm(p, 0, -320); palm(p, 3, -317); palm(p, -3, -323);
+  st.colliders.push({ id:'island', type:'circle', x:0, z:-320, r:8.1 });
+  sign(p, 'round', 4.2, -292); sign(p, 'round', 9.5, -301);
+  var rc = spawnCar('#d9b31f', 13, -320, 0); st.l.ring = { o: rc, a: 0.4 };
+  st.colliders.push({ id:'ringcar', type:'circle', o: rc, r:1.6 });
+  // parking lot
+  flat(p, 9, 38, asphalt(), 8, 0.012, -430);
+  var bayLine = function(x0, x1, z0, z1, col){ flat(p, x1-x0, 0.15, MB(col), (x0+x1)/2, 0.018, z0); flat(p, x1-x0, 0.15, MB(col), (x0+x1)/2, 0.018, z1); flat(p, 0.15, z0-z1, MB(col), x1, 0.018, (z0+z1)/2); };
+  bayLine(5.2, 8.8, -426.5, -433.5, '#3b8cff'); flat(p, 3.4, 6.8, new T.MeshBasicMaterial({ color:'#3b8cff', transparent:true, opacity:0.22, toneMapped:false }), 7, 0.016, -430);
+  bayLine(5.2, 8.8, -419.5, -426.5, '#f4f4f0'); bayLine(5.2, 8.8, -433.5, -440.5, '#f4f4f0');
+  spawnCar('#6b2737', 7, -423, 0); st.colliders.push({ id:'parked', type:'box', x0:6.05, x1:7.95, z0:-425.2, z1:-420.8 });
+  spawnCar('#e0e3e6', 7, -437, Math.PI); st.colliders.push({ id:'parked', type:'box', x0:6.05, x1:7.95, z0:-439.2, z1:-434.8 });
+  sign(p, 'parking', 4.0, -412);
+  box(p, 0.3, 0.15, 30, '#e9e4da', 12.4, 0.075, -430);
+  // sidewalks, buildings
+  sidewalk(p, -1, 40, -296); sidewalk(p, 1, 40, -296); sidewalk(p, -1, -344, -490); sidewalk(p, 1, -344, -410); sidewalk(p, 1, -450, -490);
+  buildings(p, -1, 36, -290, 41); buildings(p, 1, 36, -290, 42); buildings(p, -1, -348, -490, 43); buildings(p, 1, -455, -490, 44);
+  palms(p, -1, 30, -290); palms(p, 1, 22, -290); palms(p, -1, -350, -480);
+  barrier(p, st, 6, -3.5, 3.5); barrier(p, st, -470, -3.5, 12);
+  // crossing pedestrian
+  var ped = person(p, '#2e86c1', -6.2, -80.6); ped.rotation.y = -Math.PI/2; st.l.ped = ped;
+  st.colliders.push({ id:'ped', type:'circle', o: ped, r:0.35, kind:'pedestrian' });
+  strollers(st, [[-5,-30],[5,-120],[-5,-170],[5,-250],[-5,-380]]);
+}
+
+/* ---------- state ---------- */
+function newState(n){
+  return { n:n, t:0, score:100, car:{ x:1.75, z:0, h:0, v:0, steer:0, gear:'P' }, pz:0,
+    obj:{}, objOrder: LESSONS[n].objectives.slice(), mistakes:{}, cool:{}, colliders:[], dyn:[], hits:{}, l:{},
+    lane:{ out:0, flagged:false }, spd:{ over:0, flagged:false }, guideKey:null, step:0, hl:null, ended:false, lastMsg:null, endTimer:-1 };
+}
+
+Sim.begin = function(n){
+  clearWorld(); Input.keys = {}; for (var k in Input.hold) Input.hold[k] = 0;
+  var st = Sim.st = newState(n); Sim.paused = false;
+  ({1:build1, 2:build2, 3:build3})[n](st);
+  if (n === 2) { st.l.light = 'idle'; st.l.lt = 0; st.l.clean = 0; st.l.hold = 0; st.l.minStop = 99; st.l.wait = 0; }
+  ['wheel','accel','brake','gear'].forEach(function(pt){ var el = $('#p-' + pt); if (el) el.object3D.traverse(function(o){ if (o.material && o.material.emissive) o.material.emissive.setRGB(0,0,0); }); });
+  $('#callout').hidden = true;
+  Sim.placeCar(); Sim.resetView();
+  $('#hud-title').textContent = lessonName(n);
+  $('#hud-limit').hidden = !LESSONS[n].limit; $('#hud-limit').textContent = LESSONS[n].limit || '';
+  $('#toasts').innerHTML = ''; $('#pause').hidden = true;
+  Sim.renderObjs();
+  if (n === 1) Sim.enterStep(0); else Sim.guide('g.start');
+  $('#hud-vr').hidden = !vrSupport;
+  $('#hud-voice').setAttribute('aria-pressed', String(!!App.settings.voice));
+  $('#hud-pad').setAttribute('aria-pressed', String(!!App.settings.pad)); $('#pad').hidden = !App.settings.pad;
+  Sim.resume(); drawCluster(); drawScreen(); drawGear(); Sim.syncGearUI();
+};
+Sim.placeCar = function(){ var c = Sim.st.car, o = Sim.carEl.object3D; o.position.set(c.x, 0, c.z); o.rotation.y = c.h; };
+Sim.resetView = function(){ var lc = Sim.camEl.components['look-controls']; if (lc && lc.yawObject) { lc.yawObject.rotation.y = 0; lc.pitchObject.rotation.x = 0; } Sim.view = null; };
+Sim.lookTo = function(yaw, pitch){
+  if (Sim.sceneEl.is && Sim.sceneEl.is('vr-mode')) return;
+  var lc = Sim.camEl.components['look-controls']; if (!lc || !lc.yawObject) return;
+  Sim.view = { y0: lc.yawObject.rotation.y, p0: lc.pitchObject.rotation.x, y1: yaw, p1: pitch, k: 0 };
+};
+Sim.resume = function(){ var r = Sim.sceneEl && Sim.sceneEl.renderer; if (r && Sim.sceneEl.render) r.setAnimationLoop(Sim.sceneEl.render); if (Sim.sceneEl) { Sim.sceneEl.play(); window.dispatchEvent(new Event('resize')); } };
+Sim.halt = function(){ var s = Sim.sceneEl; if (!s) return; try { if (s.is('vr-mode')) s.exitVR(); } catch(e){} s.pause(); if (s.renderer) s.renderer.setAnimationLoop(null); if ('speechSynthesis' in window) speechSynthesis.cancel(); };
+
+Sim.relabel = function(){
+  var st = Sim.st; if (!st) return;
+  $('#hud-title').textContent = lessonName(st.n); Sim.renderObjs();
+  if (st.guideKey) Sim.showGuide(st.guideKey);
+  if (st.hl) $('#callout').textContent = t('part.' + st.hl);
+  drawCluster(); drawScreen();
+};
+Sim.renderObjs = function(){
+  var st = Sim.st, first = true;
+  $('#hud-objs').innerHTML = st.objOrder.map(function(o){ var done = !!st.obj[o], cur = !done && first; if (cur) first = false; return '<li class="'+(done?'done':(cur?'cur':''))+'">'+esc(t('o.'+o))+'</li>'; }).join('');
+};
+Sim.showGuide = function(key){
+  var st = Sim.st, g = $('#guide');
+  g.hidden = false; $('#hud').classList.add('has-guide');
+  $('#guide-k').textContent = st.n === 1 ? t('hud.step', { i: st.step + 1, n: st.objOrder.length }) : t('hud.guide');
+  $('#guide-text').textContent = t(key);
+};
+Sim.guide = function(key){ var st = Sim.st; if (st.guideKey === key) return; st.guideKey = key; Sim.showGuide(key); speak(t(key)); };
+Sim.toast = function(kind, title, fix, pts){
+  var d = document.createElement('div'); d.className = 'glass toast ' + kind;
+  d.innerHTML = '<b>'+esc(title)+'</b>' + (pts ? '<span class="pts">'+esc(t('res.pts',{n:pts}))+'</span>' : '') + (fix ? '<span class="fix">'+esc(t('fixLabel'))+' '+esc(fix)+'</span>' : '');
+  var box = $('#toasts'); box.prepend(d); while (box.children.length > 3) box.lastChild.remove();
+  setTimeout(function(){ d.remove(); }, kind === 'mistake' ? 7000 : 4000);
+};
+Sim.info = function(key){ var st = Sim.st; if (st.cool['i'+key] && st.t - st.cool['i'+key] < 3) return; st.cool['i'+key] = st.t; Sim.toast('info', t(key)); st.lastMsg = { t: st.t, text: t(key), bad:false }; };
+Sim.complete = function(id){
+  var st = Sim.st; if (st.obj[id] || st.ended) return; st.obj[id] = true;
+  Sim.toast('good', t('i.objDone') + ': ' + t('o.'+id)); st.lastMsg = { t: st.t, text: t('o.'+id), bad:false }; beep('good');
+  Sim.renderObjs();
+};
+Sim.mistake = function(type, vars){
+  var st = Sim.st; if (st.ended) return;
+  if (st.cool[type] && st.t - st.cool[type] < 3) return; st.cool[type] = st.t;
+  st.mistakes[type] = (st.mistakes[type] || 0) + 1;
+  st.score = Math.max(0, st.score - PENALTY[type]);
+  var w = t('m.'+type+'.w', vars), f = t('m.'+type+'.f', vars);
+  Sim.toast('mistake', w, f, PENALTY[type]); st.lastMsg = { t: st.t, text: w, bad:true }; beep('bad');
+  if (App.settings.voice) speak(w + ' ' + f);
+  if (type === 'lane' && st.l.clean != null) st.l.clean = 0;
+  st.mistakeVars = st.mistakeVars || {}; st.mistakeVars[type] = vars;
+};
+
+/* ---------- gears ---------- */
+var GEARS = ['P','R','N','D'];
+Sim.setGear = function(g){
+  var st = Sim.st; if (!st || st.ended || Sim.paused) return; var c = st.car;
+  if (g === c.gear) return;
+  if (st.n === 1 && st.step < 3) { Sim.info('i.gearLocked'); return; }
+  if (Math.abs(c.v) > 0.4) { Sim.info('i.gearMoving'); return; }
+  if (c.gear === 'P' && Input.read().brake < 0.3) { Sim.info('i.gearBrake'); return; }
+  c.gear = g; Sim.syncGearUI(); drawGear(); drawCluster();
+};
+Sim.cycleGear = function(d){ var c = Sim.st.car; var i = GEARS.indexOf(c.gear) + d; if (i < 0 || i > 3) return; Sim.setGear(GEARS[i]); };
+Sim.syncGearUI = function(){
+  var g = Sim.st.car.gear;
+  document.querySelectorAll('#hud-gears span').forEach(function(s){ s.classList.toggle('on', s.textContent === g); });
+  document.querySelectorAll('#pad-gears button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.gear === g)); });
+  var lev = $('#gear-lever'); if (lev) lev.object3D.position.z = -0.09 + GEARS.indexOf(g)*0.06;
+};
+
+/* ---------- lesson 1 steps ---------- */
+Sim.enterStep = function(i){
+  var st = Sim.st; st.step = i; var id = st.objOrder[i]; if (!id) return;
+  st.l1 = { left:false, right:false, acc:0, brk:0 };
+  Sim.highlight(STEP_PARTS[id]);
+  Sim.guide('s.' + id);
+  var v = STEP_VIEW[id]; Sim.lookTo(v[0], v[1]);
+};
+Sim.partClicked = function(part){
+  var st = Sim.st; if (!st || st.ended || Sim.paused) return;
+  if (st.n === 1) {
+    var id = st.objOrder[st.step];
+    if (part === 'cluster' && id === 'dash') { Sim.complete('dash'); Sim.enterStep(st.step + 1); return; }
+    var key = { wheel:'s.wheel', accel:'s.accel', brake:'s.brake', gear:'s.gear', cluster:'s.dash' }[part];
+    if (key) { Sim.toast('info', t('part.'+part)); speak(t('part.'+part) + '. ' + t(key)); }
+  }
+};
+Sim.highlight = function(part){
+  var st = Sim.st, prev = st.hl; st.hl = part || null;
+  var setE = function(p, v){ var el = p && $('#p-' + p); if (!el) return; el.object3D.traverse(function(o){ if (o.material && o.material.emissive) { o.material.emissive.setRGB(v*0.95, v*0.65, 0); } }); };
+  if (prev) setE(prev, 0);
+  $('#callout').hidden = !part; if (part) $('#callout').textContent = t('part.' + part);
+  drawCluster();
+};
+function stepLesson1(st, inp, dt){
+  var id = st.objOrder[st.step], L = st.l1, c = st.car; if (!id) return;
+  var sn = c.steer / 0.55;
+  if (id === 'wheel') { if (sn < -0.7) L.left = true; if (sn > 0.7) L.right = true; if (L.left && L.right) { Sim.complete('wheel'); Sim.enterStep(1); } }
+  else if (id === 'accel') { if (inp.throttle > 0.5) L.acc += dt; if (L.acc > 0.8) { Sim.complete('accel'); Sim.enterStep(2); } }
+  else if (id === 'brake') { if (inp.brake > 0.5) L.brk += dt; if (L.brk > 1) { Sim.complete('brake'); Sim.enterStep(3); } }
+  else if (id === 'gear') { if (c.gear === 'D') { Sim.complete('gear'); Sim.enterStep(4); } }
+  else if (id === 'roll') {
+    if (c.z < -5 && Math.abs(c.v) < 0.1 && c.z > -12.4 && inp.brake > 0.2) { Sim.complete('roll'); Sim.finishSoon(); }
+  }
+  if (st.hl) {
+    var el = $('#p-' + st.hl), pulse = 0.35 + 0.35*Math.sin(st.t*6);
+    if (el && st.hl !== 'cluster') el.object3D.traverse(function(o){ if (o.material && o.material.emissive) o.material.emissive.setRGB(pulse*0.95, pulse*0.65, 0); });
+  }
+}
+
+/* ---------- lesson 2 ---------- */
+function crossed(a, b, line){ return a > line && b <= line; }
+function stepLesson2(st, inp, dt){
+  var c = st.car, L = st.l, kmh = Math.abs(c.v)*3.6, SL = -135.5;
+  if (!st.obj.start && c.gear === 'D' && kmh > 3) Sim.complete('start');
+  if (st.obj.start && !st.obj.speed30) { if (kmh >= 25 && kmh <= 42) { L.hold += dt; if (L.hold >= 3) Sim.complete('speed30'); } else L.hold = 0; }
+  if (st.obj.start && !st.obj.lane) { L.clean += Math.abs(c.v)*dt; if (L.clean >= 150) Sim.complete('lane'); }
+  // traffic light state machine
+  L.lt += dt;
+  if (L.light === 'idle' && c.z < -72) { L.light = 'yellow'; L.lt = 0; L.tl.set('yellow'); }
+  else if (L.light === 'yellow' && L.lt > 2.5) { L.light = 'red'; L.lt = 0; L.tl.set('red'); }
+  else if (L.light === 'red') {
+    if (c.z > SL && c.z < SL + 45 && kmh < 1) { L.wait += dt; if (L.wait > 0.6 && !st.obj.red) Sim.complete('red'); if (L.wait > 3.5) { L.light = 'green'; L.tl.set('green'); } }
+    if (crossed(st.pz, c.z, SL)) { Sim.mistake('red'); L.ran = true; L.lt = 0; }
+    if ((L.ran && L.lt > 3) || L.lt > 14) { L.light = 'green'; L.tl.set('green'); }
+  }
+  if (crossed(st.pz, c.z, -143.5) && L.light === 'green' && !L.ran && st.obj.red) Sim.complete('green');
+  // cross traffic only while our light is red or yellow
+  var cc = L.cross, moving = (L.light === 'red' || L.light === 'yellow') || (cc.position.x > -60 && cc.position.x < 60);
+  if (moving) {
+    var ahead = c.z > -142 && c.z < -134.5 && (c.x - cc.position.x) > 0 && (c.x - cc.position.x) < 8;
+    if (!ahead) cc.position.x += 11*dt;
+    if (cc.position.x > 90) cc.position.x = (L.light === 'red' || L.light === 'yellow') ? -90 : 95;
+  }
+  // stop sign
+  if (c.z < -252 && c.z > -265.5) L.minStop = Math.min(L.minStop, kmh);
+  if (crossed(st.pz, c.z, -265.5)) { if (L.minStop <= 1) Sim.complete('stopsign'); else Sim.mistake('stopsign'); }
+  if (c.z < -344 && c.z > -353 && kmh < 1 && st.obj.start) { Sim.complete('finish'); Sim.finishSoon(); }
+  var gk;
+  if (!st.obj.start) gk = 'g.start';
+  else if (c.z > -80) gk = st.obj.speed30 ? 'g2.lane' : 'g2.speed';
+  else if (c.z > -146) gk = (L.light === 'green' && (st.obj.red || L.ran)) ? 'g2.green' : 'g2.light';
+  else if (c.z > -228) gk = st.obj.speed30 ? 'g2.lane' : 'g2.speed';
+  else if (c.z > -268) gk = 'g2.stop';
+  else gk = 'g2.finish';
+  Sim.guide(gk);
+}
+function laneRange(st, z){
+  if (st.n === 1) return null;
+  if (st.n === 2) { if ((z < -132 && z > -148) || (z < -262 && z > -278)) return null; return [0.45, 3.05]; }
+  if (z < -185 && z > -255) return [-3.1, 3.05];
+  if (z < -295 && z > -345) return null;
+  if (z < -405 && z > -452) return [0.45, 10];
+  return [0.45, 3.05];
+}
+
+/* ---------- lesson 3 ---------- */
+function stepLesson3(st, inp, dt){
+  var c = st.car, L = st.l, kmh = Math.abs(c.v)*3.6;
+  if (!st.l.started && c.gear === 'D' && kmh > 3) { st.l.started = true; }
+  // pedestrian crossing
+  var ped = L.ped, CZ = -80;
+  if (c.z < -38) L.pedGo = true;
+  if (L.pedGo && ped.position.x < 6.5) {
+    var blocked = Math.abs(c.z - ped.position.z) < 3.2 && Math.abs(c.x - ped.position.x) < 1.6;
+    if (!blocked) ped.position.x += 1.45*dt; walkAnim(ped, dt, !blocked);
+  } else walkAnim(ped, dt, false);
+  var occupied = ped.position.x > -4.2 && ped.position.x < 4.2;
+  if (crossed(st.pz, c.z, CZ)) { if (occupied) { Sim.mistake('pedestrian'); L.pedFail = true; } else if (!L.pedFail && L.pedGo) Sim.complete('yield'); }
+  // stop box
+  if (c.z < -148.4 && c.z > -155.6 && Math.abs(c.x - 1.75) < 1.3 && kmh < 0.6) { L.boxT = (L.boxT||0) + dt; if (L.boxT > 2 && !L.boxOk) L.boxOk = true; } else L.boxT = 0;
+  if (L.boxOk && c.z < -158 && kmh > 3) Sim.complete('stopstart');
+  if (!L.boxOk && crossed(st.pz, c.z, -158)) Sim.info('i.missedBox');
+  // obstacle + oncoming car
+  var on = L.onc;
+  if (!on.active && c.z < -182) { on.active = true; on.o.position.set(-1.75, 0, -292); }
+  if (on.active) {
+    var dz = c.z - on.o.position.z, blockedO = Math.abs(c.x - on.o.position.x) < 2.2 && dz > 0 && dz < 9;
+    if (!blockedO) on.o.position.z += 9*dt;
+    if (on.o.position.z > c.z + 80) { on.active = false; on.o.position.z = -600; }
+  }
+  if (crossed(st.pz, c.z, -250)) { if (!st.hits.broken && !st.hits.oncoming) Sim.complete('obstacle'); }
+  // roundabout
+  var r = L.ring, ahead = { x: 13*Math.cos(r.a - 0.5), z: -320 + 13*Math.sin(r.a - 0.5) };
+  var blockedR = (c.x-ahead.x)*(c.x-ahead.x) + (c.z-ahead.z)*(c.z-ahead.z) < 25;
+  if (!blockedR) r.a -= (6/13)*dt;
+  r.o.position.set(13*Math.cos(r.a), 0, -320 + 13*Math.sin(r.a)); r.o.rotation.y = -r.a;
+  if (crossed(st.pz, c.z, -301)) { L.entry = kmh; if (kmh > 30) { Sim.mistake('roundfast'); L.rfast = true; } }
+  if (c.z < -313 && c.z > -327 && c.x < -2 && !L.wrong) { Sim.mistake('wrongway'); L.wrong = true; }
+  if (crossed(st.pz, c.z, -339) && Math.abs(c.x) < 4.5) { if (!L.rfast && !L.wrong && !st.hits.island && !st.hits.ringcar) Sim.complete('roundabout'); }
+  // parking
+  var inBay = c.x > 5.6 && c.x < 8.4 && c.z < -427.4 && c.z > -432.6;
+  var hd = Math.atan2(Math.sin(c.h), Math.cos(c.h)), straight = Math.abs(hd) < 0.45 || Math.abs(Math.abs(hd) - Math.PI) < 0.45;
+  var parkedNotP = inBay && straight && kmh < 0.5 && c.gear !== 'P';
+  if (inBay && straight && kmh < 0.5 && c.gear === 'P') { Sim.complete('park'); Sim.finishSoon(); }
+  var gk;
+  if (!L.started) gk = 'g.start';
+  else if (c.z > -100) gk = 'g3.cross';
+  else if (c.z > -160) gk = L.boxOk ? 'g3.boxGo' : 'g3.box';
+  else if (c.z > -255) gk = 'g3.obstacle';
+  else if (c.z > -345) gk = 'g3.round';
+  else gk = parkedNotP ? 'g3.parkP' : 'g3.park';
+  Sim.guide(gk);
+}
+
+/* ---------- collisions ---------- */
+function circleHits(cx, cz, r, col){
+  if (col.type === 'box') { var nx = Math.max(col.x0, Math.min(cx, col.x1)), nz = Math.max(col.z0, Math.min(cz, col.z1)); return (cx-nx)*(cx-nx) + (cz-nz)*(cz-nz) < r*r; }
+  var x = col.o ? col.o.position.x : col.x, z = col.o ? col.o.position.z : col.z, rr = r + col.r;
+  return (cx-x)*(cx-x) + (cz-z)*(cz-z) < rr*rr;
+}
+function checkCollisions(st){
+  var c = st.car, s = Math.sin(c.h), co = Math.cos(c.h);
+  var pts = [[c.x - s*1.35, c.z - co*1.35], [c.x + s*1.35, c.z + co*1.35], [c.x, c.z]];
+  for (var i=0; i<st.colliders.length; i++){
+    var col = st.colliders[i];
+    for (var j=0; j<3; j++){ if (circleHits(pts[j][0], pts[j][1], 0.95, col)) return col; }
+  }
+  return null;
+}
+
+/* ---------- main tick ---------- */
+Sim.tick = function(dt){
+  var st = Sim.st; if (!st || current !== 'screen-sim') return;
+  Sim.pollXR();
+  if (Sim.view) { var v = Sim.view, lc = Sim.camEl.components['look-controls']; v.k = Math.min(1, v.k + dt*2.2); var e = v.k*v.k*(3-2*v.k); if (lc && lc.yawObject) { lc.yawObject.rotation.y = v.y0 + (v.y1-v.y0)*e; lc.pitchObject.rotation.x = v.p0 + (v.p1-v.p0)*e; } if (v.k >= 1) Sim.view = null; }
+  if (Sim.paused || st.ended) { Sim.hudUpdate(dt, true); return; }
+  st.t += dt;
+  var inp = Input.read(), c = st.car;
+  // steering
+  var maxS = 0.55 / (1 + Math.abs(c.v)/14), target = inp.steer * maxS, rate = 1.6*dt;
+  c.steer += Math.max(-rate, Math.min(rate, target - c.steer));
+  // longitudinal
+  var a = 0, sgn = c.v > 0.01 ? 1 : (c.v < -0.01 ? -1 : 0);
+  if (c.gear === 'D') { a += inp.throttle * 3.3; if (inp.throttle < 0.05 && inp.brake < 0.1 && c.v < 1.7) a += 0.9; }
+  else if (c.gear === 'R') { a -= inp.throttle * 1.8; if (inp.throttle < 0.05 && inp.brake < 0.1 && c.v > -1.2) a -= 0.6; }
+  a -= 0.006*c.v*Math.abs(c.v) + 0.12*sgn;
+  if (inp.brake > 0) a -= inp.brake * 8 * (sgn || 0);
+  var v0 = c.v; c.v += a*dt;
+  if (c.gear === 'P') c.v = 0;
+  if (c.gear === 'R' && c.v < -4) c.v = -4;
+  if (sgn !== 0 && Math.sign(c.v) !== sgn && (inp.brake > 0 || (c.gear !== 'D' && c.gear !== 'R') || (c.gear === 'D' && sgn < 0) || (c.gear === 'R' && sgn > 0))) c.v = 0;
+  if (sgn === 0 && inp.brake > 0.1) c.v = 0;
+  if (c.gear === 'N' && Math.abs(c.v) < 0.05) c.v = 0;
+  // integrate
+  var px = c.x, pz = c.z, ph = c.h; st.pz = c.z;
+  c.h += -(c.v / 2.65) * Math.tan(c.steer) * dt;
+  c.x += -Math.sin(c.h) * c.v * dt; c.z += -Math.cos(c.h) * c.v * dt;
+  var hit = checkCollisions(st);
+  if (hit) {
+    c.x = px; c.z = pz; c.h = ph; var impact = Math.abs(v0); c.v = 0; st.pz = pz;
+    if (!st.hits[hit.id] || st.t - st.hits[hit.id] > 2.5) { st.hits[hit.id] = st.t; if (impact > 0.3) { Sim.mistake('collision'); if (hit.kind === 'pedestrian') { Sim.mistake('pedestrian'); st.l.pedFail = true; } } }
+  }
+  Sim.placeCar();
+  // lesson logic
+  if (st.n === 1) stepLesson1(st, inp, dt); else if (st.n === 2) stepLesson2(st, inp, dt); else stepLesson3(st, inp, dt);
+  st.dyn.forEach(function(f){ f(dt); });
+  // lane monitoring
+  var lr = laneRange(st, c.z);
+  if (lr && Math.abs(c.v) > 0.5) {
+    if (c.x < lr[0] || c.x > lr[1]) { st.lane.out += dt; if (st.lane.out > 0.6 && !st.lane.flagged) { st.lane.flagged = true; Sim.mistake('lane'); } }
+    else { st.lane.out = 0; st.lane.flagged = false; }
+  } else if (!lr) { st.lane.out = 0; st.lane.flagged = false; }
+  // speed monitoring
+  var lim = LESSONS[st.n].limit, kmh = Math.abs(c.v)*3.6;
+  if (lim) { if (kmh > lim + 3) { st.spd.over += dt; if (st.spd.over > 1.5 && !st.spd.flagged) { st.spd.flagged = true; Sim.mistake('speed', { limit: lim }); } } else if (kmh < lim) { st.spd.over = 0; st.spd.flagged = false; } }
+  // in-park hint
+  if (st.n !== 1 && c.gear === 'P' && inp.throttle > 0.5 && !st.ended) Sim.info('i.inPark');
+  // visuals
+  var ws = $('#wheel-spin'); if (ws) ws.object3D.rotation.z = -(c.steer/0.55)*3.6;
+  var pa = $('#p-accel'), pb = $('#p-brake'); if (pa) pa.object3D.rotation.x = (-30 + inp.throttle*18)*Math.PI/180; if (pb) pb.object3D.rotation.x = (-30 + inp.brake*20)*Math.PI/180;
+  if (st.endTimer >= 0) { st.endTimer -= dt; if (st.endTimer < 0) Sim.end(); }
+  Sim.hudUpdate(dt, false);
+};
+Sim.finishSoon = function(){ var st = Sim.st; if (st.endTimer < 0) st.endTimer = 1.6; };
+
+Sim.hudUpdate = function(dt, idle){
+  var st = Sim.st; Sim.hudT += dt; Sim.canvT += dt;
+  // callout follows highlighted part
+  if (st.hl) {
+    var el = $('#p-' + st.hl), cam = Sim.sceneEl.camera, co = $('#callout');
+    if (el && cam) {
+      var T = Sim.T, p = new T.Vector3(); el.object3D.getWorldPosition(p); p.y += 0.06; p.project(cam);
+      var w = Sim.sceneEl.canvas.clientWidth, h = Sim.sceneEl.canvas.clientHeight, x = (p.x*0.5+0.5)*w, y = (-p.y*0.5+0.5)*h;
+      var off = p.z > 1 || x < 20 || x > w-20 || y < 60 || y > h-20;
+      x = Math.max(70, Math.min(w-70, x)); y = Math.max(110, Math.min(h-20, p.z > 1 ? h-20 : y));
+      co.style.left = x + 'px'; co.style.top = y + 'px'; co.classList.toggle('edge', off);
+      co.textContent = t('part.' + st.hl) + (off ? ' ↓ ' + t('i.lookDown') : '');
+    }
+  }
+  if (Sim.hudT > 0.1) {
+    Sim.hudT = 0; var c = st.car, kmh = Math.abs(c.v)*3.6, lim = LESSONS[st.n].limit;
+    $('#hud-speed').textContent = Math.round(kmh);
+    $('#hud-score').textContent = st.score;
+    var m = Math.floor(st.t/60), s = Math.floor(st.t%60); $('#hud-time').textContent = m + ':' + (s<10?'0':'') + s;
+    $('#hud-limit').classList.toggle('over', !!lim && kmh > lim + 3);
+  }
+  if (Sim.canvT > 0.066) { Sim.canvT = 0; drawCluster(); if (!idle || Math.random() < 0.2) drawScreen(); }
+};
+
+Sim.pollXR = function(){
+  var s = Sim.sceneEl, r = s && s.renderer, sess = r && r.xr && r.xr.getSession && r.xr.getSession();
+  var x = Input.xr; x.gas = 0; x.brake = 0; x.steer = 0;
+  if (!sess) return;
+  var b4 = false, b5 = false;
+  for (var i=0; i<sess.inputSources.length; i++){
+    var src = sess.inputSources[i], gp = src.gamepad; if (!gp) continue;
+    var trig = gp.buttons[0] ? gp.buttons[0].value : 0;
+    if (src.handedness === 'left') x.brake = Math.max(x.brake, trig); else x.gas = Math.max(x.gas, trig);
+    var ax = gp.axes.length > 2 ? gp.axes[2] : (gp.axes[0] || 0); if (Math.abs(ax) > 0.15) x.steer += ax;
+    if (gp.buttons[4] && gp.buttons[4].pressed) b4 = true;
+    if (gp.buttons[5] && gp.buttons[5].pressed) b5 = true;
+  }
+  if (b4 && !x.b4) Sim.cycleGear(Sim.st.car.gear === 'D' ? -3 : 1);
+  if (b5 && !x.b5) Sim.togglePause();
+  x.b4 = b4; x.b5 = b5;
+};
+
+/* ---------- pause / end ---------- */
+Sim.togglePause = function(){ if (!Sim.st || Sim.st.ended) return; Sim.setPaused(!Sim.paused); };
+Sim.setPaused = function(p){
+  Sim.paused = p; $('#pause').hidden = !p; Input.keys = {}; for (var k in Input.hold) Input.hold[k] = 0;
+  if (p) { if ('speechSynthesis' in window) speechSynthesis.cancel(); $('#p-resume').focus(); }
+  drawScreen();
+};
+$('#hud-pause').addEventListener('click', function(){ Sim.setPaused(true); });
+$('#hud-exit').addEventListener('click', function(){ Sim.setPaused(true); $('#p-dash').focus(); });
+$('#p-resume').addEventListener('click', function(){ Sim.setPaused(false); });
+$('#p-restart').addEventListener('click', function(){ Sim.begin(Sim.st.n); });
+$('#p-end').addEventListener('click', function(){ Sim.paused = false; $('#pause').hidden = true; Sim.end(); });
+$('#p-dash').addEventListener('click', function(){ Sim.paused = false; Sim.st = null; Sim.halt(); renderDashboard(); show('screen-dashboard'); });
+$('#hud-voice').addEventListener('click', function(){ App.settings.voice = !App.settings.voice; saveSettings(); this.setAttribute('aria-pressed', String(App.settings.voice)); if (!App.settings.voice && 'speechSynthesis' in window) speechSynthesis.cancel(); });
+$('#hud-pad').addEventListener('click', function(){ App.settings.pad = !App.settings.pad; saveSettings(); this.setAttribute('aria-pressed', String(App.settings.pad)); $('#pad').hidden = !App.settings.pad; });
+$('#hud-lang').addEventListener('click', function(){ setLang(lang === 'ar' ? 'en' : 'ar'); });
+$('#hud-vr').addEventListener('click', function(){
+  try { var pr = Sim.sceneEl.enterVR(); if (pr && pr.catch) pr.catch(function(){ Sim.info('i.vrFail'); }); } catch(e){ Sim.info('i.vrFail'); }
+});
+document.addEventListener('visibilitychange', function(){ if (document.hidden && Sim.st && !Sim.st.ended && current === 'screen-sim' && !Sim.paused) Sim.setPaused(true); });
+
+Sim.end = function(){
+  var st = Sim.st; if (!st || st.ended) return; st.ended = true; drawScreen();
+  var allObj = st.objOrder.every(function(o){ return st.obj[o]; });
+  var passed = allObj && st.score >= CONFIG.passScore;
+  var p = profile(), rec = p.lessons[st.n] || { passed:false, best:0, attempts:0 };
+  var wasNextLocked = st.n < 3 && !unlocked(st.n + 1);
+  rec.attempts += 1; rec.best = Math.max(rec.best, st.score); rec.passed = rec.passed || passed; rec.last = Date.now();
+  p.lessons[st.n] = rec; saveProfile(p);
+  var result = { n: st.n, score: st.score, passed: passed, obj: Object.assign({}, st.obj), objOrder: st.objOrder.slice(), mistakes: Object.assign({}, st.mistakes), vars: st.mistakeVars || {}, time: st.t,
+    unlockedNext: passed && wasNextLocked && st.n < 3 };
+  Api.saveResult({ lesson: st.n, score: st.score, passed: passed, durationSec: Math.round(st.t), mistakes: st.mistakes, objectives: st.obj });
+  App.last = result;
+  setTimeout(function(){ Sim.halt(); Sim.st = null; renderResults(result); show('screen-results'); }, 300);
+};
+
+/* =========================================================
+   RESULTS
+   ========================================================= */
+function renderResults(r){
+  $('#res-head').classList.toggle('fail', !r.passed);
+  $('#res-score').textContent = r.score;
+  $('#res-lesson').textContent = lessonName(r.n);
+  $('#res-title').textContent = t(r.passed ? 'res.passed' : 'res.failed');
+  $('#res-sub').textContent = r.passed ? (r.n === 3 || passedCount() === 3 ? t('res.allDone') : '') : t('res.need', { p: CONFIG.passScore });
+  $('#res-unlock').hidden = !r.unlockedNext; if (r.unlockedNext) $('#res-unlock').textContent = t('res.unlocked', { lesson: lessonName(r.n + 1) });
+  var m = Math.floor(r.time/60), s = Math.floor(r.time%60); $('#res-time').textContent = t('res.time', { t: m + ':' + (s<10?'0':'') + s });
+  $('#res-objs').innerHTML = r.objOrder.map(function(o){ var d = !!r.obj[o]; return '<li><span class="ic '+(d?'ok':'no')+'" aria-label="'+esc(d?'✓':'✗')+'"></span><span>'+esc(t('o.'+o))+'</span><span class="muted" style="font-size:.8rem">'+esc(lang==='ar'?(d?'مُنجز':'لم يُنجز'):(d?'Done':'Not done'))+'</span></li>'; }).join('');
+  var keys = Object.keys(r.mistakes);
+  $('#res-mistakes').innerHTML = keys.length ? keys.map(function(k){ return '<li><span class="ic bad"></span><span>'+esc(t('m.'+k+'.w', r.vars[k]))+'</span><span class="mono muted">×'+r.mistakes[k]+' · −'+(PENALTY[k]*r.mistakes[k])+'</span></li>'; }).join('') : '<li><span class="ic ok"></span><span>'+esc(t('res.none'))+'</span><span></span></li>';
+  var tips = keys.map(function(k){ return t('m.'+k+'.f', r.vars[k]); });
+  if (!r.objOrder.every(function(o){ return r.obj[o]; })) tips.push(t('tip.incomplete'));
+  if (r.score < CONFIG.passScore) tips.push(t('tip.lowscore'));
+  if (!tips.length) tips.push(t('tip.perfect'));
+  $('#res-tips').innerHTML = tips.map(function(x){ return '<li><span class="ic tip"></span><span>'+esc(x)+'</span></li>'; }).join('');
+  var hasNext = r.n < 3 && unlocked(r.n + 1);
+  $('#btn-next').hidden = !hasNext;
+}
+$('#btn-retry').addEventListener('click', function(){ if (App.last) openBrief(App.last.n); });
+$('#btn-next').addEventListener('click', function(){ if (App.last) openBrief(App.last.n + 1); });
+$('#btn-res-dash').addEventListener('click', function(){ renderDashboard(); show('screen-dashboard'); });
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+var savedLang = Store.get('lang', null);
+setLang(savedLang || ((navigator.language || 'en').toLowerCase().indexOf('ar') === 0 ? 'ar' : 'en'));
+if (App.session) { renderDashboard(); show('screen-dashboard'); } else show('screen-login');
+if ('speechSynthesis' in window) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = function(){}; } catch(e){} }
+loadAFrame().catch(function(){});
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ signCache = {}; });
+})();
+</script>
+
+<script>
+/* Added: "Enter VR" button. Separate from the app script; uses the A-Frame scene directly. */
+(function(){
+  'use strict';
+  var TXT = {
+    en: { label: 'Enter VR mode', noXR: 'VR is not available in this browser or page. Open the standalone index.html over HTTPS in a WebXR browser, such as the Meta Quest Browser, with your headset connected.', wait: 'The 3D scene is still loading. Try again in a moment.' },
+    ar: { label: 'تفعيل الواقع الافتراضي', noXR: 'الواقع الافتراضي غير متاح في هذا المتصفح أو هذه الصفحة. افتح ملف index.html المستقل عبر HTTPS في متصفح يدعم WebXR، مثل متصفح Meta Quest، مع توصيل النظارة.', wait: 'المشهد ثلاثي الأبعاد ما زال قيد التحميل. حاول مرة أخرى بعد لحظة.' }
+  };
+  var btn = document.getElementById('vr-activate');
+  function L(){ return document.documentElement.lang === 'ar' ? TXT.ar : TXT.en; }
+  function label(){ btn.textContent = L().label; }
+  function notify(msg){
+    var box = document.getElementById('toasts'); if (!box) return;
+    var d = document.createElement('div'); d.className = 'glass toast'; d.setAttribute('role', 'status');
+    var b = document.createElement('b'); b.textContent = msg; d.appendChild(b);
+    box.prepend(d); setTimeout(function(){ d.remove(); }, 7000);
+  }
+  label();
+  new MutationObserver(label).observe(document.documentElement, { attributes: true, attributeFilter: ['lang'] });
+  btn.addEventListener('click', function(){
+    var scene = document.querySelector('#scene-host a-scene');
+    if (!scene || !scene.hasLoaded || typeof scene.enterVR !== 'function') { notify(L().wait); return; }
+    if (!navigator.xr) { notify(L().noXR); return; }
+    try {
+      var p = scene.enterVR();
+      if (p && typeof p.catch === 'function') p.catch(function(){ notify(L().noXR); });
+    } catch (e) { notify(L().noXR); }
+  });
+})();
+</script>
+
+</body>
+</html>
